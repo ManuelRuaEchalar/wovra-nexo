@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sistema Halo + Nocturno -->
+    <color name="fondo">#F4F9F6</color>
+    <color name="noche">#0E3B36</color>
+    <color name="aurora">#2BD07E</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>

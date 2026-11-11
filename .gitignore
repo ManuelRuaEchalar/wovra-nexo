@@ -1,0 +1,26 @@
+# Cachés y resultados de compilación
+.gradle/
+**/build/
+.idea/
+*.iml
+.DS_Store
+local.properties
+.externalNativeBuild/
+.cxx/
+
+# Configuración privada y del entorno
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+.aws/
+.agents/
+.codex/
+
+# Copias del propio repositorio
+respaldos/
+
+# Caché de Python
+__pycache__/
+*.py[cod]

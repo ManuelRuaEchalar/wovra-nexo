@@ -1,0 +1,2 @@
+Fondo generado con la herramienta integrada image_gen. Solo rallo.png se envio como referencia. yo_sin_fondo.png no se envio al generador.
+Composicion: Pillow, escala proporcional, curva de contraste, balance de color, saturacion y suavizado del borde alfa. Sin sintesis ni modificacion geometrica del rostro.

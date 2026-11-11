@@ -1,0 +1,200 @@
+package com.redcentinela.escudo.ui.screen
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.redcentinela.escudo.data.ble.TagLink
+import com.redcentinela.escudo.domain.model.ShieldStatus
+import com.redcentinela.escudo.domain.model.SystemSignal
+import com.redcentinela.escudo.service.EscudoConfig
+import com.redcentinela.escudo.ui.EscudoViewModel
+import com.redcentinela.escudo.ui.Permisos
+import com.redcentinela.escudo.ui.component.AvisoAmbar
+import com.redcentinela.escudo.ui.component.BotonSecundario
+import com.redcentinela.escudo.ui.component.Campo
+import com.redcentinela.escudo.ui.component.Etiqueta
+import com.redcentinela.escudo.ui.component.FilaItem
+import com.redcentinela.escudo.ui.component.Halo
+import com.redcentinela.escudo.ui.component.Iconos
+import com.redcentinela.escudo.ui.component.Interruptor
+import com.redcentinela.escudo.ui.component.Separador
+import com.redcentinela.escudo.ui.component.Tarjeta
+import com.redcentinela.escudo.ui.component.Vineta
+import com.redcentinela.escudo.ui.theme.AmbarTexto
+import com.redcentinela.escudo.ui.theme.Medio
+import com.redcentinela.escudo.ui.theme.Texto2
+import com.redcentinela.escudo.ui.theme.Tipo
+
+/** D5 · Ajustes y privacidad. Incluye las pruebas del Escudo para ensayar la demo. */
+@Composable
+fun AjustesScreen(vm: EscudoViewModel, refresco: Int, onGuardian: () -> Unit) {
+    val context = LocalContext.current
+    val state by vm.shield.collectAsStateWithLifecycle()
+    val members by vm.members.collectAsStateWithLifecycle()
+    val tag by vm.tagState.collectAsStateWithLifecycle()
+    val activo = state.status != ShieldStatus.INACTIVO
+
+    var apagadoFalso by rememberSaveable { mutableStateOf(vm.config.fakeShutdown) }
+    var pitido by rememberSaveable { mutableStateOf(vm.config.beepOnSeparation) }
+    var aislado by rememberSaveable { mutableStateOf(vm.config.selfAlertMinutes) }
+    var nombre by rememberSaveable { mutableStateOf(vm.config.userName) }
+    var numero by rememberSaveable { mutableStateOf(vm.config.phone ?: "") }
+    var relevo by rememberSaveable { mutableStateOf(vm.config.relayUrl) }
+    val accesibilidad = refresco.let { Permisos.apagadoFalso(context) }
+    val sinAhorro = refresco.let { Permisos.sinAhorroBateria(context) }
+
+    val guardianMember = members.firstOrNull { it.isGuardian }
+    val (guardianTitulo, guardianNota) = when {
+        tag != TagLink.State.SIN_LLAVERO -> "Guardián · ${vm.config.tagName ?: "Llavero"}" to when (tag) {
+            TagLink.State.CERCA -> "Enlazado · cerca"
+            TagLink.State.LEJOS -> "Enlazado · fuera de alcance"
+            else -> "Enlazado · buscando…"
+        }
+        guardianMember != null -> "Guardián · ${guardianMember.name}" to "El celular de quien va contigo"
+        else -> "Sin guardián" to "Vincula un llavero o el celular de alguien"
+    }
+
+    Column(
+        Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)
+            .padding(top = 12.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Text("Ajustes", style = Tipo.Titulo)
+
+        Tarjeta(relleno = 16.dp) {
+            FilaItem(
+                guardianTitulo, guardianNota,
+                colorNota = if (tag == TagLink.State.LEJOS) AmbarTexto else if (guardianMember != null || tag != TagLink.State.SIN_LLAVERO) Medio else Texto2,
+                inicio = { Halo(Modifier.size(width = 54.dp, height = 36.dp), punteado = guardianMember == null && tag == TagLink.State.SIN_LLAVERO) },
+                onClick = onGuardian
+            ) { Icon(Iconos.Chevron, null, tint = Texto2, modifier = Modifier.size(18.dp)) }
+        }
+
+        Seccion("Escudo") {
+            Tarjeta(relleno = 16.dp) {
+                FilaItem("Escudo activo", "Registra tu ruta y vigila el equipo en segundo plano") {
+                    Interruptor(activo) { if (it) vm.startShield() else vm.stopShield() }
+                }
+                Separador()
+                FilaItem("Apagado falso", "La pantalla simula apagarse y sigue registrando") {
+                    Interruptor(apagadoFalso) {
+                        apagadoFalso = it
+                        vm.config.fakeShutdown = it
+                    }
+                }
+                Separador()
+                FilaItem(
+                    "Alerta sola si queda aislado",
+                    if (aislado > 0) "Bloqueado, sin internet ni SMS y lejos de tu guardián por $aislado min: se reporta solo. Toca para cambiar."
+                    else "Desactivada. Toca para cambiar.",
+                    onClick = {
+                        aislado = when (aislado) { 10 -> 0; 0 -> 2; 2 -> 5; else -> 10 }
+                        vm.config.selfAlertMinutes = aislado
+                    }
+                ) { Text(if (aislado > 0) "$aislado min" else "No", style = Tipo.Fila, color = Medio) }
+                Separador()
+                FilaItem("Pitido al alejarte", "Suena si se aleja el celular que cuidas como guardián") {
+                    Interruptor(pitido) {
+                        pitido = it
+                        vm.config.beepOnSeparation = it
+                    }
+                }
+            }
+        }
+        if (apagadoFalso && !accesibilidad) {
+            AvisoAmbar(
+                "Para el apagado falso falta activar \"Red Centinela · Apagado falso\" en Accesibilidad.",
+                accion = "Activar"
+            ) { Permisos.abrirAccesibilidad(context) }
+        }
+        if (!sinAhorro) {
+            AvisoAmbar("Tu marca puede cerrar la app para ahorrar batería.", accion = "Revisar") { Permisos.pedirSinAhorro(context) }
+        }
+
+        Seccion("Tu perfil") {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Campo("Tu nombre", nombre, { nombre = it.take(30) })
+                Campo("Número de este celular", numero, { numero = it.take(16) }, ayuda = "+591 7XXXXXXX", teclado = KeyboardType.Phone)
+                if (nombre.trim() != vm.config.userName || numero.trim() != (vm.config.phone ?: "")) {
+                    BotonSecundario("Guardar perfil") {
+                        vm.config.userName = nombre
+                        vm.config.phone = numero
+                        vm.say("Perfil guardado. Si ya tenías círculo, vuelve a compartir tu código para actualizarlo.")
+                    }
+                }
+            }
+        }
+
+        Seccion("Privacidad") {
+            Tarjeta(relleno = 16.dp) {
+                Vineta("Tu ubicación solo sale del teléfono cuando está reportado como robado o perdido.")
+                Separador()
+                Vineta("Por internet y por Bluetooth viaja cifrada: solo tu círculo puede leerla.")
+                Separador()
+                Vineta("Tu ruta diaria se guarda cifrada en este teléfono y no se comparte.")
+            }
+        }
+
+        Seccion("Probar el Escudo") {
+            Tarjeta(relleno = 16.dp) {
+                Prueba("Probar apagado falso", "Muestra el apagado simulado ahora. Para salir: toca la pantalla 5 veces seguidas.") { vm.testFakeShutdown() }
+                Separador()
+                Prueba("Simular robo en este celular", "Entra en alerta: envía tu ubicación a tu círculo por la cascada.") { vm.simulateTheft() }
+                Separador()
+                Prueba("Simular pérdida", "Muestra la pantalla \"Este celular está perdido\" sobre el bloqueo.") { vm.simulateLost() }
+                Separador()
+                Prueba("Simular retiro de chip", "Con el celular desbloqueado solo queda en el registro.") { vm.simulateSignal(SystemSignal.CHIP_RETIRADO) }
+                if (state.status.isAlert) {
+                    Separador()
+                    Prueba("Terminar la alerta", "Vuelve a la vigilancia normal.") { vm.standDown() }
+                }
+            }
+        }
+
+        Seccion("Conexión") {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Campo("Servidor de relevo (internet)", relevo, { relevo = it.trim() }, ayuda = EscudoConfig.DEFAULT_RELAY, teclado = KeyboardType.Uri)
+                Text(
+                    "Por aquí pasan los mensajes cifrados entre los teléfonos del círculo. Todos deben usar el mismo servidor.",
+                    style = Tipo.Nota
+                )
+                if (relevo != vm.config.relayUrl) {
+                    BotonSecundario("Guardar servidor") {
+                        vm.config.relayUrl = relevo
+                        relevo = vm.config.relayUrl
+                        vm.say("Servidor guardado. Cierra y abre la app para aplicarlo.")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Seccion(titulo: String, contenido: @Composable () -> Unit) {
+    Column {
+        Etiqueta(titulo, Modifier.padding(start = 4.dp, top = 4.dp, bottom = 8.dp))
+        contenido()
+    }
+}
+
+@Composable
+private fun Prueba(titulo: String, nota: String, onClick: () -> Unit) {
+    FilaItem(titulo, nota, onClick = onClick) { Icon(Iconos.Chevron, null, tint = Texto2, modifier = Modifier.size(18.dp)) }
+}

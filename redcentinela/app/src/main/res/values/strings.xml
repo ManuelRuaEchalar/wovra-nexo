@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Red Centinela</string>
+    <string name="fake_shutdown_label">Red Centinela · Apagado falso</string>
+    <string name="fake_shutdown_desc">Si alguien intenta apagar tu celular con la pantalla bloqueada y el Escudo activo, la pantalla simula apagarse y el equipo sigue registrando su ubicación. No lee el contenido de tu pantalla ni lo que escribes.</string>
+</resources>
