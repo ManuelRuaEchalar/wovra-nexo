@@ -62,6 +62,23 @@ class EscudoConfig(context: Context) {
         get() = prefs.getString(KEY_RELAY, null)?.ifBlank { null } ?: DEFAULT_RELAY
         set(value) = prefs.edit().putString(KEY_RELAY, value.trim().trimEnd('/')).apply()
 
+    /**
+     * Recompensa (en bolivianos) que se bloquea en Stellar si este celular se
+     * reporta como perdido. 0 = desactivada.
+     */
+    var rewardBs: Int
+        get() = prefs.getInt(KEY_REWARD_BS, 0)
+        set(value) = prefs.edit().putInt(KEY_REWARD_BS, value.coerceIn(0, MAX_REWARD_BS)).apply()
+
+    var rewardMessage: String
+        get() = prefs.getString(KEY_REWARD_MSG, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_REWARD_MSG, value.trim().take(200)).apply()
+
+    /** Servidor de recompensas (recompensas/server), el que publica los escrows. */
+    var rewardServerUrl: String
+        get() = prefs.getString(KEY_REWARD_URL, null)?.ifBlank { null } ?: DEFAULT_REWARD_SERVER
+        set(value) = prefs.edit().putString(KEY_REWARD_URL, value.trim().trimEnd('/')).apply()
+
     /** Dirección Bluetooth del llavero guardián enlazado (iTag). */
     var tagAddress: String?
         get() = prefs.getString(KEY_TAG, null)
@@ -88,6 +105,12 @@ class EscudoConfig(context: Context) {
 
     companion object {
         const val DEFAULT_RELAY = "https://ntfy.sh"
+        /** Se completa cuando el servidor de recompensas esté desplegado; mientras, se configura en Ajustes. */
+        const val DEFAULT_REWARD_SERVER = ""
+        const val MAX_REWARD_BS = 340
+        private const val KEY_REWARD_BS = "reward_bs"
+        private const val KEY_REWARD_MSG = "reward_msg"
+        private const val KEY_REWARD_URL = "reward_url"
         private const val KEY_ID = "device_id"
         private const val KEY_SECRET = "secret"
         private const val KEY_NAME = "name"

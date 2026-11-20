@@ -39,6 +39,7 @@ import com.redcentinela.escudo.service.ServiceLocator
 import com.redcentinela.escudo.ui.component.BotonDestello
 import com.redcentinela.escudo.ui.component.Etiqueta
 import com.redcentinela.escudo.ui.component.Iconos
+import com.redcentinela.escudo.ui.component.RecompensaEnPantallaPerdido
 import com.redcentinela.escudo.ui.component.TarjetaNoche
 import com.redcentinela.escudo.ui.screen.ahora
 import com.redcentinela.escudo.ui.theme.Destello
@@ -70,16 +71,19 @@ class LostModeActivity : ComponentActivity() {
                 var avisado by rememberSaveable { mutableStateOf(false) }
                 val now = ahora(10_000)
                 val dueno = locator.config.userName.ifBlank { "su dueño" }
+                val recompensa = locator.rewards.reward.collectAsStateWithLifecycle().value
+                    ?.takeIf { it.showOnLostScreen }
 
                 TarjetaNoche(Modifier.fillMaxSize(), radio = 0.dp) {
                     Column(
                         Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)
-                            .padding(start = 28.dp, end = 28.dp, top = 64.dp, bottom = 28.dp),
+                            .padding(start = 28.dp, end = 28.dp, top = if (recompensa != null) 32.dp else 64.dp, bottom = 28.dp),
                         verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
                         Column {
                             Text(
-                                Format.clock(now), fontFamily = Sora, fontWeight = FontWeight(200), fontSize = 76.sp,
+                                Format.clock(now), fontFamily = Sora, fontWeight = FontWeight(200),
+                                fontSize = if (recompensa != null) 52.sp else 76.sp,
                                 letterSpacing = (-0.05).em, color = Color.White
                             )
                             Text(Format.day(now), style = Tipo.Cuerpo, color = TextoNoche)
@@ -95,6 +99,7 @@ class LostModeActivity : ComponentActivity() {
                                 style = Tipo.Cuerpo, color = TextoNoche
                             )
                         }
+                        if (recompensa != null) RecompensaEnPantallaPerdido(recompensa)
                         if (contacto != null) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Etiqueta("O llama a ${contacto.name}", color = Destello)

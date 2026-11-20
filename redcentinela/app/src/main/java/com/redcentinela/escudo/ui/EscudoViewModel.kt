@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.redcentinela.escudo.data.ble.TagLink
 import com.redcentinela.escudo.data.circle.Card
+import com.redcentinela.escudo.data.reward.Reward
 import com.redcentinela.escudo.data.shutdown.FakeShutdownService
 import com.redcentinela.escudo.data.shutdown.SignalBus
 import com.redcentinela.escudo.domain.model.AlertReason
@@ -58,6 +59,15 @@ class EscudoViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _proximity = MutableStateFlow<ProximityReading?>(null)
     val proximity: StateFlow<ProximityReading?> = _proximity.asStateFlow()
+
+    // --- Recompensa garantizada (Stellar) ---
+    val reward: StateFlow<Reward?> = locator.rewards.reward
+    val rewardWorking: StateFlow<Boolean> = locator.rewards.working
+    val rewardProblem: StateFlow<String?> = locator.rewards.problem
+    fun confirmReward() = locator.rewards.confirm()
+    fun rejectRewardClaim() = locator.rewards.reject()
+    fun cancelReward() = locator.rewards.cancel()
+    fun dismissReward() = locator.rewards.dismiss()
 
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 4)
     /** Mensajes breves para el usuario (resultado de una acción). */

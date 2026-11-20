@@ -56,6 +56,9 @@ fun AjustesScreen(vm: EscudoViewModel, refresco: Int, onGuardian: () -> Unit) {
     var nombre by rememberSaveable { mutableStateOf(vm.config.userName) }
     var numero by rememberSaveable { mutableStateOf(vm.config.phone ?: "") }
     var relevo by rememberSaveable { mutableStateOf(vm.config.relayUrl) }
+    var recompensa by rememberSaveable { mutableStateOf(vm.config.rewardBs.takeIf { it > 0 }?.toString() ?: "") }
+    var mensajeRecompensa by rememberSaveable { mutableStateOf(vm.config.rewardMessage) }
+    var servidorRecompensas by rememberSaveable { mutableStateOf(vm.config.rewardServerUrl) }
     val accesibilidad = refresco.let { Permisos.apagadoFalso(context) }
     val sinAhorro = refresco.let { Permisos.sinAhorroBateria(context) }
 
@@ -136,6 +139,39 @@ fun AjustesScreen(vm: EscudoViewModel, refresco: Int, onGuardian: () -> Unit) {
                         vm.config.userName = nombre
                         vm.config.phone = numero
                         vm.say("Perfil guardado. Si ya tenías círculo, vuelve a compartir tu código para actualizarlo.")
+                    }
+                }
+            }
+        }
+
+        Seccion("Recompensa si lo pierdes") {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "Si reportan este celular como perdido, el monto se bloquea en un escrow de Stellar y la pantalla " +
+                        "muestra un código para que quien lo encuentre lo cobre al devolverlo. Tú confirmas el pago. " +
+                        "Nunca se ofrece en un robo.",
+                    style = Tipo.Nota
+                )
+                Campo(
+                    "Monto en bolivianos (vacío = sin recompensa)", recompensa,
+                    { recompensa = it.filter(Char::isDigit).take(3) },
+                    ayuda = "50", teclado = KeyboardType.Number
+                )
+                Campo("Mensaje para quien lo encuentre", mensajeRecompensa, { mensajeRecompensa = it.take(120) }, ayuda = "Gracias por devolverlo")
+                Campo("Servidor de recompensas", servidorRecompensas, { servidorRecompensas = it.trim() }, ayuda = "https://…", teclado = KeyboardType.Uri)
+                val monto = recompensa.toIntOrNull() ?: 0
+                if (monto != vm.config.rewardBs || mensajeRecompensa.trim() != vm.config.rewardMessage ||
+                    servidorRecompensas.trimEnd('/') != vm.config.rewardServerUrl
+                ) {
+                    BotonSecundario("Guardar recompensa") {
+                        vm.config.rewardBs = monto
+                        vm.config.rewardMessage = mensajeRecompensa
+                        vm.config.rewardServerUrl = servidorRecompensas
+                        recompensa = vm.config.rewardBs.takeIf { it > 0 }?.toString() ?: ""
+                        vm.say(
+                            if (vm.config.rewardBs > 0) "Listo: ${vm.config.rewardBs} Bs si se pierde (máximo ${EscudoConfig.MAX_REWARD_BS})."
+                            else "Recompensa desactivada."
+                        )
                     }
                 }
             }
