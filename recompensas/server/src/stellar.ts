@@ -38,6 +38,19 @@ export async function asegurarCuenta(kp: Keypair): Promise<void> {
   }
 }
 
+/** Crea la cuenta (testnet) y su trustline de USDC si faltan. Trustless Work exige la trustline en cada rol. */
+export async function asegurarTrustline(kp: Keypair): Promise<void> {
+  await asegurarCuenta(kp);
+  if ((await saldoUsdc(kp.publicKey())) !== null) return;
+  const cuenta = await horizon.loadAccount(kp.publicKey());
+  const tx = new TransactionBuilder(cuenta, { fee: "10000", networkPassphrase: redPassphrase })
+    .addOperation(Operation.changeTrust({ asset: USDC }))
+    .setTimeout(60)
+    .build();
+  tx.sign(kp);
+  await horizon.submitTransaction(tx);
+}
+
 /**
  * Deja la cuenta con al menos `minimo` USDC de testnet: crea la trustline si falta
  * y compra USDC con XLM en el exchange de Stellar (path payment).

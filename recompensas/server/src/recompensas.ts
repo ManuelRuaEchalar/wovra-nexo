@@ -2,7 +2,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { Keypair } from "@stellar/stellar-sdk";
 import { Almacen } from "./almacen.ts";
 import { config, explorador } from "./config.ts";
-import { asegurarCuenta, asegurarUsdc, esDireccionValida, saldoUsdc } from "./stellar.ts";
+import { asegurarTrustline, asegurarUsdc, esDireccionValida, saldoUsdc } from "./stellar.ts";
 import { abrirDisputa, desplegarEscrow, fondearEscrow, resolverDisputa, saldoEscrow } from "./trustless.ts";
 
 /**
@@ -97,7 +97,7 @@ function cuentaDe(dispositivoId: string): Keypair {
 
 export async function prepararPlataforma(): Promise<string> {
   const kp = plataforma();
-  await asegurarCuenta(kp);
+  await asegurarTrustline(kp);
   return kp.publicKey();
 }
 
@@ -226,7 +226,7 @@ export function crear(p: { dispositivoId: string; nombreDueno: string; mensaje?:
 async function desplegarYFondear(id: string, dueno: Keypair) {
   const plat = plataforma();
   let r = exigir(id);
-  await asegurarCuenta(plat);
+  await asegurarTrustline(plat);
   await asegurarUsdc(dueno, r.montoUsdc);
 
   const desp = await desplegarEscrow(
