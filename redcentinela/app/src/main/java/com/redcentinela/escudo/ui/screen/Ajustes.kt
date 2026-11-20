@@ -59,6 +59,10 @@ fun AjustesScreen(vm: EscudoViewModel, refresco: Int, onGuardian: () -> Unit) {
     var recompensa by rememberSaveable { mutableStateOf(vm.config.rewardBs.takeIf { it > 0 }?.toString() ?: "") }
     var mensajeRecompensa by rememberSaveable { mutableStateOf(vm.config.rewardMessage) }
     var servidorRecompensas by rememberSaveable { mutableStateOf(vm.config.rewardServerUrl) }
+    // Lo guardado, como estado: las preferencias no avisan a la pantalla cuando cambian.
+    var recompensaGuardada by rememberSaveable {
+        mutableStateOf(Triple(vm.config.rewardBs, vm.config.rewardMessage, vm.config.rewardServerUrl))
+    }
     val accesibilidad = refresco.let { Permisos.apagadoFalso(context) }
     val sinAhorro = refresco.let { Permisos.sinAhorroBateria(context) }
 
@@ -160,14 +164,14 @@ fun AjustesScreen(vm: EscudoViewModel, refresco: Int, onGuardian: () -> Unit) {
                 Campo("Mensaje para quien lo encuentre", mensajeRecompensa, { mensajeRecompensa = it.take(120) }, ayuda = "Gracias por devolverlo")
                 Campo("Servidor de recompensas", servidorRecompensas, { servidorRecompensas = it.trim() }, ayuda = "https://…", teclado = KeyboardType.Uri)
                 val monto = recompensa.toIntOrNull() ?: 0
-                if (monto != vm.config.rewardBs || mensajeRecompensa.trim() != vm.config.rewardMessage ||
-                    servidorRecompensas.trimEnd('/') != vm.config.rewardServerUrl
-                ) {
+                if (Triple(monto, mensajeRecompensa.trim(), servidorRecompensas.trimEnd('/')) != recompensaGuardada) {
                     BotonSecundario("Guardar recompensa") {
                         vm.config.rewardBs = monto
                         vm.config.rewardMessage = mensajeRecompensa
                         vm.config.rewardServerUrl = servidorRecompensas
                         recompensa = vm.config.rewardBs.takeIf { it > 0 }?.toString() ?: ""
+                        servidorRecompensas = vm.config.rewardServerUrl
+                        recompensaGuardada = Triple(vm.config.rewardBs, vm.config.rewardMessage, vm.config.rewardServerUrl)
                         vm.say(
                             if (vm.config.rewardBs > 0) "Listo: ${vm.config.rewardBs} Bs si se pierde (máximo ${EscudoConfig.MAX_REWARD_BS})."
                             else "Recompensa desactivada."

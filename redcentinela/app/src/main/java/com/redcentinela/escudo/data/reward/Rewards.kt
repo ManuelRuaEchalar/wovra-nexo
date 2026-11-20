@@ -190,11 +190,24 @@ class RewardManager(
     private val mutex = Mutex()
     @Volatile private var wantsReward = false
 
+    /** Reintentos espaciados (1, 2, 4… hasta 15 min) si el servidor o la red fallan. */
+    @Volatile private var failures = 0
+    @Volatile private var nextAttemptAt = 0L
+
+    private fun backoff() {
+        failures++
+        nextAttemptAt = System.currentTimeMillis() + minOf(60_000L shl (failures - 1).coerceAtMost(4), 15 * 60_000L)
+    }
+
     init {
         scope.launch {
             shield.map { it.status }.distinctUntilChanged().collect { status ->
                 wantsReward = status == ShieldStatus.ALERTA_PERDIDA
-                if (wantsReward) ensureCreated()
+                if (wantsReward) {
+                    failures = 0
+                    nextAttemptAt = 0L
+                    ensureCreated()
+                }
             }
         }
         scope.launch { poll() }
@@ -205,6 +218,7 @@ class RewardManager(
     private suspend fun ensureCreated() = mutex.withLock {
         val current = _reward.value
         if (!enabled || (current != null && !current.replaceable)) return@withLock
+        if (System.currentTimeMillis() < nextAttemptAt) return@withLock
         if (!relay.hasInternet()) {
             _problem.value = "Sin internet: la recompensa se publicará al recuperar conexión."
             return@withLock
@@ -225,6 +239,7 @@ class RewardManager(
             _problem.value = null
             update(it)
         }.onFailure {
+            backoff()
             _problem.value = it.message ?: "No se pudo publicar la recompensa"
         }
     }
@@ -243,7 +258,12 @@ class RewardManager(
 
     suspend fun refresh() {
         val r = _reward.value ?: return
-        runCatching { client.get(r.id, r.token) }.onSuccess { update(r.merge(it)) }
+        runCatching { client.get(r.id, r.token) }.onSuccess { json ->
+            val updated = r.merge(json)
+            if (updated.failed && !r.failed) backoff()
+            if (updated.active || updated.claimed) failures = 0
+            update(updated)
+        }
     }
 
     fun confirm() = act { client.confirm(it.id, it.token) }
