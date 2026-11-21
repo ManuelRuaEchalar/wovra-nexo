@@ -7,10 +7,12 @@
 <style>
   /*
    * Concepto B · "La sinapsis, de cerca". Primer plano extremo del punto donde
-   * dos dendritas casi se tocan. Son nubes de luz granulada que respiran; la
-   * emisora se carga de luz, suelta vesículas que cruzan el espacio flotando
-   * y la receptora se enciende y lleva la luz hacia adentro. Profundidad de
+   * dos dendritas casi se tocan. Son nubes de luz granulada que respiran y se
+   * abren en puntas irregulares y bifurcadas; la emisora se carga de luz, la
+   * descarga salta y la receptora se enciende y lleva la luz hacia adentro. Profundidad de
    * campo mínima: solo el espacio entre ellas está nítido.
+   * La señal cruza como hilos eléctricos de luz granulada que titilan entre
+   * las puntas bifurcadas de las dos células.
    * Misma estética que fondo-dendritas-luz.html.
    */
   @font-face { font-family: Sora; src: url(../borradores/assets/sora.ttf); }
@@ -99,17 +101,51 @@ function ramitas(r, base, cantidad, ramas) {
 }
 
 const GAP = { x: 800, y: 452 };
+
+/** Ruido suave 1D determinista: grosores irregulares, como en una célula real. */
+function ruido1(r) {
+  const v = Array.from({ length: 64 }, r);
+  return (x) => { const i = Math.floor(x) & 63, f = x - Math.floor(x), s = f * f * (3 - 2 * f);
+    return lerp(v[i], v[(i + 1) & 63], s) * 2 - 1; };
+}
+
+/**
+ * El extremo de cada dendrita se abre en varios dedos de distinto largo y
+ * grosor que se acercan al espacio central; algunos se vuelven a bifurcar.
+ * lado = 1 para la emisora (izquierda), -1 para la receptora (derecha).
+ */
+function dedos(r, base, lado, cantidad, ramas, puntas) {
+  for (let i = 0; i < cantidad; i++) {
+    const abanico = i / (cantidad - 1) - .5;
+    const destino = { x: GAP.x - lado * (22 + r() * 80), y: GAP.y + abanico * 240 + (r() - .5) * 60 };
+    const w0 = base.w * (.42 + r() * .3), nr = ruido1(r);
+    const d = eje(r, base, destino, (t) => Math.max(2.4, w0 * (1 - t * .8) * (1 + .32 * nr(t * 7))), .6);
+    ramas.push(d); puntas.push(d[d.length - 1]);
+    // Bifurcación: un dedo más fino sale del tramo final.
+    if (r() < .75) {
+      const p = d[Math.floor(d.length * (.5 + r() * .3))];
+      const fin = { x: GAP.x - lado * (14 + r() * 60), y: p.y + (r() - .5) * 170 };
+      const w1 = p.w * (.55 + r() * .2);
+      const sub = eje(r, p, fin, (t) => Math.max(1.8, w1 * (1 - t * .85) * (1 + .3 * nr(t * 9 + 3))), .75);
+      ramas.push(sub); puntas.push(sub[sub.length - 1]);
+    }
+  }
+}
+
 function construir() {
-  const r = semilla(4242), izq = [], der = [];
-  // Emisora: tronco que entra por la izquierda y termina en un botón (abultado).
-  const troncoI = eje(r, { x: -200, y: 640 }, { x: GAP.x - 60, y: GAP.y + 8 },
-    (t) => 110 * (1 - t * .5) + 170 * Math.exp(-Math.pow((t - .92) / .07, 2)));
-  izq.push(troncoI); ramitas(r, troncoI, 7, izq);
-  // Receptora: entra por la derecha y termina en una espina con cabeza.
-  const troncoD = eje(r, { x: 1820, y: 260 }, { x: GAP.x + 60, y: GAP.y - 6 },
-    (t) => 130 * (1 - t * .72) + (t > .86 ? 110 * Math.sin((t - .86) / .14 * Math.PI * .9) : 0));
-  der.push(troncoD); ramitas(r, troncoD, 8, der);
-  return { izq, der, troncoI, troncoD };
+  const r = semilla(4242), izq = [], der = [], puntasI = [], puntasD = [];
+  const nI = ruido1(r), nD = ruido1(r);
+  // Emisora: entra por la izquierda y se abre en dedos antes del espacio central.
+  const troncoI = eje(r, { x: -200, y: 640 }, { x: GAP.x - 250, y: GAP.y + 24 },
+    (t) => 112 * (1 - t * .48) * (1 + .14 * nI(t * 6)));
+  izq.push(troncoI); ramitas(r, troncoI, 6, izq);
+  dedos(r, troncoI[troncoI.length - 1], 1, 5, izq, puntasI);
+  // Receptora: entra por la derecha y también se abre en dedos.
+  const troncoD = eje(r, { x: 1820, y: 260 }, { x: GAP.x + 250, y: GAP.y - 14 },
+    (t) => 128 * (1 - t * .52) * (1 + .14 * nD(t * 6)));
+  der.push(troncoD); ramitas(r, troncoD, 7, der);
+  dedos(r, troncoD[troncoD.length - 1], -1, 5, der, puntasD);
+  return { izq, der, troncoI, troncoD, puntasI, puntasD };
 }
 
 // ---------------------------------------------------------------------------
@@ -210,11 +246,11 @@ function preparar() {
 }
 
 // ---------------------------------------------------------------------------
-// Animación: carga, liberación de vesículas, llegada y propagación
+// Animación: carga, descarga en hilos eléctricos, encendido y propagación
 // ---------------------------------------------------------------------------
-const CICLO = 10, T_CARGA = 3, T_SUELTA = 3, T_PROPAGA = 3.4;
+const CICLO = 10, T_CARGA = 3, T_DESCARGA = 2.6, T_PROPAGA = 3.4;
 let tiempo = 0, previo = performance.now(), pausa = false, ciclo = -1;
-let vesiculas = [];
+let arcos = [];
 const polvo = Array.from({ length: 40 }, () => ({ x: Math.random() * VW, y: Math.random() * VH, vx: 0, vy: 0, rad: 1 + Math.random() * 3.5, prof: Math.random() }));
 
 function luz(ctx, x, y, rad, color, alfa) {
@@ -230,12 +266,39 @@ function chispas(ctx, x, y, disp, n, alfa) {
   }
 }
 
-function soltarVesiculas() {
-  const boton = forma.troncoI[forma.troncoI.length - 1];
-  vesiculas = Array.from({ length: 26 }, (_, i) => ({
-    x: boton.x + Math.random() * 20, y: boton.y + (Math.random() - .5) * 180,
-    vx: 0, vy: 0, sale: i * .09 + Math.random() * .4, rad: 6 + Math.random() * 8, llego: 0,
-  }));
+/** Camino quebrado de un rayo entre dos puntos (desplazamiento del punto medio). */
+function rayo(a, b, desvio, prof) {
+  if (prof === 0) return [a, b];
+  const m = { x: (a.x + b.x) / 2 + (Math.random() - .5) * desvio, y: (a.y + b.y) / 2 + (Math.random() - .5) * desvio };
+  return rayo(a, m, desvio / 2, prof - 1).concat(rayo(m, b, desvio / 2, prof - 1).slice(1));
+}
+
+/** Dibuja un hilo eléctrico: resplandor, núcleo fino y granos de luz a lo largo. */
+function hilo(ctx, pts, fuerza) {
+  const trazo = (ancho, color, alfa) => {
+    ctx.strokeStyle = `rgba(${color},${alfa})`; ctx.lineWidth = ancho; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.stroke();
+  };
+  trazo(14, AURORA, .05 * fuerza);
+  trazo(4, DESTELLO, .22 * fuerza);
+  trazo(1.1, BLANCO, .75 * fuerza);
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i];
+    for (let k = 0; k < 3; k++) {
+      const f = Math.random();
+      chispas(ctx, lerp(a.x, b.x, f), lerp(a.y, b.y, f), 3.5, 1, .9 * fuerza);
+    }
+  }
+}
+
+/** Un arco nuevo: de una punta de la emisora a una de las puntas más cercanas de la receptora. */
+function nuevoArco(completo) {
+  const a = forma.puntasI[Math.floor(Math.random() * forma.puntasI.length)];
+  const cerca = forma.puntasD.slice().sort((p, q) => Math.hypot(p.x - a.x, p.y - a.y) - Math.hypot(q.x - a.x, q.y - a.y));
+  const b = cerca[Math.floor(Math.random() * Math.min(2, cerca.length))];
+  // Un "líder" (completo = false) avanza solo una parte del camino: tantea antes de la descarga.
+  const fin = completo ? b : { x: lerp(a.x, b.x, .25 + Math.random() * .35), y: lerp(a.y, b.y, .25 + Math.random() * .35) + (Math.random() - .5) * 30 };
+  return { a, b: fin, llega: completo ? b : null, vida: .08 + Math.random() * .22, edad: 0 };
 }
 
 function cuadro(ahora) {
@@ -243,41 +306,47 @@ function cuadro(ahora) {
   const ctx = $('fx').getContext('2d');
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, $('fx').width, $('fx').height); aplicar(ctx);
   ctx.globalCompositeOperation = 'lighter';
-  const boton = forma.troncoI[forma.troncoI.length - 1], espina = forma.troncoD[forma.troncoD.length - 1];
-
   const c = tiempo % CICLO, n = Math.floor(tiempo / CICLO);
-  if (n !== ciclo) { ciclo = n; vesiculas = []; }
+  if (n !== ciclo) { ciclo = n; arcos = []; }
 
-  // 1. Carga: el botón de la emisora junta luz.
+  // 1. Carga: las puntas de la emisora juntan luz y empiezan a tantear el espacio.
   const carga = c < T_CARGA ? c / T_CARGA : Math.max(0, 1 - (c - T_CARGA) / 1.2);
-  luz(ctx, boton.x - 60, boton.y, 230, AURORA, .05 + .16 * carga);
-  chispas(ctx, boton.x - 70, boton.y, 140, Math.floor(20 + 120 * carga), .35 + .5 * carga);
-
-  // 2. Suelta: las vesículas cruzan el espacio flotando (movimiento browniano con deriva).
-  if (c >= T_CARGA && !vesiculas.length) soltarVesiculas();
-  let llegadas = 0;
-  for (const v of vesiculas) {
-    const edad = c - T_CARGA - v.sale;
-    if (edad < 0) continue;
-    if (!v.llego && dt) {
-      v.vx = v.vx * .9 + (Math.random() - .5) * 2.6 + .5;          // deriva hacia la receptora
-      v.vy = v.vy * .9 + (Math.random() - .5) * 2.2 + (espina.y - v.y) * .004;
-      v.x += v.vx * dt * 30; v.y += v.vy * dt * 30;
-      if (v.x > espina.x - 30) v.llego = c;
-    }
-    if (v.llego) { llegadas++; const f = Math.min(1, (c - v.llego) / .6);
-      luz(ctx, v.x, v.y, 26, DESTELLO, .5 * (1 - f)); continue; }
-    const aparicion = Math.min(1, edad / .3);
-    luz(ctx, v.x, v.y, v.rad * 4, AURORA, .3 * aparicion);
-    luz(ctx, v.x, v.y, v.rad * 1.2, BLANCO, .55 * aparicion);
-    chispas(ctx, v.x, v.y, v.rad * 1.6, 5, .7 * aparicion);
+  for (const p of forma.puntasI) {
+    luz(ctx, p.x, p.y, 40 + 30 * carga, AURORA, .06 + .22 * carga);
+    chispas(ctx, p.x, p.y, 10 + 10 * carga, Math.floor(4 + 18 * carga), .4 + .5 * carga);
   }
 
-  // 3. Llegada y propagación: la receptora se enciende y lleva la luz hacia adentro.
-  const encendido = Math.min(1, llegadas / 10);
-  luz(ctx, espina.x + 70, espina.y, 200 + 100 * encendido, AURORA, .05 + .2 * encendido);
-  if (encendido > 0) chispas(ctx, espina.x + 70, espina.y, 120, Math.floor(110 * encendido), .8 * encendido);
-  const tProp = c - T_CARGA - T_SUELTA * .55;
+  // 2. Descarga: hilos eléctricos que saltan entre las puntas y titilan.
+  const enDescarga = c >= T_CARGA && c < T_CARGA + T_DESCARGA;
+  const intensidad = enDescarga ? Math.sin((c - T_CARGA) / T_DESCARGA * Math.PI) : 0;
+  if (dt) {
+    if (c > T_CARGA * .6 && c < T_CARGA && Math.random() < .25 * carga) arcos.push(nuevoArco(false));
+    if (enDescarga && Math.random() < .2 + .6 * intensidad) arcos.push(nuevoArco(true));
+    for (const a of arcos) a.edad += dt;
+    arcos = arcos.filter(a => a.edad < a.vida);
+  }
+  const encendidas = new Set();
+  for (const a of arcos) {
+    const d = Math.hypot(a.b.x - a.a.x, a.b.y - a.a.y);
+    const pts = rayo(a.a, a.b, d * .38, 5);           // se recalcula cada cuadro: el hilo tiembla
+    const vida = 1 - a.edad / a.vida;
+    hilo(ctx, pts, a.llega ? .55 + .45 * vida : .45 * vida);
+    // Ramificaciones finas que se escapan del hilo principal.
+    if (a.llega && Math.random() < .5) {
+      const p = pts[Math.floor(Math.random() * (pts.length - 2)) + 1], ang = Math.random() * 6.283, l = 14 + Math.random() * 30;
+      hilo(ctx, rayo(p, { x: p.x + Math.cos(ang) * l, y: p.y + Math.sin(ang) * l }, l * .5, 3), .35 * vida);
+    }
+    if (a.llega) encendidas.add(a.llega);
+  }
+  luz(ctx, GAP.x, GAP.y, 160, AURORA, .04 + .14 * intensidad);
+
+  // 3. Las puntas de la receptora se encienden donde llega el hilo, y la luz viaja hacia adentro.
+  for (const p of forma.puntasD) {
+    const toca = encendidas.has(p);
+    luz(ctx, p.x, p.y, toca ? 70 : 40, toca ? DESTELLO : AURORA, toca ? .5 : .05 + .1 * intensidad);
+    if (toca) chispas(ctx, p.x, p.y, 16, 22, .9);
+  }
+  const tProp = c - T_CARGA - T_DESCARGA * .5;
   if (tProp > 0 && tProp < T_PROPAGA) {
     const f = tProp / T_PROPAGA, e = f * f * (3 - 2 * f), camino = forma.troncoD;
     const idx = Math.floor((1 - e) * (camino.length - 1));
@@ -286,7 +355,7 @@ function cuadro(ahora) {
       chispas(ctx, p.x, p.y, p.w * .45, 3, .45 * k * (1 - f * .5));
     }
     const p = camino[idx];
-    luz(ctx, p.x, p.y, p.w * 2.4, AURORA, .4 * (1 - f * .6)); chispas(ctx, p.x, p.y, p.w * .5, 26, .9 * (1 - f * .5));
+    luz(ctx, p.x, p.y, p.w * 2, AURORA, .3 * (1 - f * .6)); chispas(ctx, p.x, p.y, p.w * .5, 26, .9 * (1 - f * .5));
   }
 
   // Polvo con movimiento browniano (algunos muy cerca y desenfocados).
@@ -303,7 +372,7 @@ function cuadro(ahora) {
   if (!reducido) {
     const s1 = Math.sin(tiempo * .9), s2 = Math.sin(tiempo * .8 + 1.3);
     const dx = Math.sin(tiempo * .05) * 10, dy = Math.cos(tiempo * .04) * 7;
-    $('cIzq').style.transform = `translate(${dx + s1 * 3 + carga * 4}px,${dy}px) scale(${1 + s1 * .004})`;
+    $('cIzq').style.transform = `translate(${dx + s1 * 3 + carga * 3}px,${dy}px) scale(${1 + s1 * .004})`;
     $('cDer').style.transform = `translate(${dx - s2 * 3}px,${dy}px) scale(${1 + s2 * .004})`;
     $('cFx').style.transform = `translate(${dx}px,${dy}px)`;
     $('cFondo').style.transform = `translate(${dx * .4}px,${dy * .4}px) scale(1.02)`;
