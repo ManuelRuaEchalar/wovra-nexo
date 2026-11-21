@@ -93,6 +93,18 @@ class EscudoConfig(context: Context) {
         get() = prefs.getLong(KEY_INBOX, 0)
         set(value) = prefs.edit().putLong(KEY_INBOX, value).apply()
 
+    /**
+     * Identificador de este teléfono como nodo de la red: va en los avisos
+     * ajenos que reenvía, para cobrar el micropago. No se relaciona con el id
+     * del equipo, así reenviar no revela quién eres.
+     */
+    val nodeId: String by lazy { stored(KEY_NODE) { Crypto.randomHex(8) } }
+
+    /** Porcentaje de la recompensa que se comparte con los nodos que vieron el celular. */
+    var rewardSharePct: Int
+        get() = prefs.getInt(KEY_SHARE, 10)
+        set(value) = prefs.edit().putInt(KEY_SHARE, value.coerceIn(0, 50)).apply()
+
     /** Correo de la cuenta de rescate del panel web (null = sin cuenta). */
     var rescueEmail: String?
         get() = prefs.getString(KEY_RESCUE_EMAIL, null)
@@ -119,6 +131,8 @@ class EscudoConfig(context: Context) {
         private const val KEY_REWARD_BS = "reward_bs"
         private const val KEY_REWARD_MSG = "reward_msg"
         private const val KEY_REWARD_URL = "reward_url"
+        private const val KEY_NODE = "node_id"
+        private const val KEY_SHARE = "reward_share_pct"
         private const val KEY_RESCUE_EMAIL = "rescue_email"
         private const val KEY_RESCUE_TOKEN = "rescue_token"
         private const val KEY_ID = "device_id"

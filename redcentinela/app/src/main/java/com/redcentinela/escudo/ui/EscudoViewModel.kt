@@ -89,6 +89,15 @@ class EscudoViewModel(app: Application) : AndroidViewModel(app) {
         _messages.tryEmit(text)
     }
 
+    // --- Ayudar a la red (micropagos) ------------------------------------------
+
+    private val _nodeStats = MutableStateFlow<org.json.JSONObject?>(null)
+    val nodeStats: StateFlow<org.json.JSONObject?> = _nodeStats.asStateFlow()
+
+    fun refreshNodeStats() {
+        viewModelScope.launch { _nodeStats.value = locator.nodeStats() }
+    }
+
     // --- Panel web (cuenta de rescate) ---------------------------------------
 
     private val _rescueEmail = MutableStateFlow(locator.rescue.email)

@@ -15,6 +15,7 @@ import {
   vistaDueno,
   vistaPublica,
 } from "./recompensas.ts";
+import { confirmarAviso, cuentaFondo, pagarNodos, vistaNodo } from "./nodos.ts";
 import { borrarCuenta, entrar, guardarCuenta, sal } from "./rescate.ts";
 import { USDC } from "./stellar.ts";
 import { ErrorTrustless } from "./trustless.ts";
@@ -93,6 +94,16 @@ app.post("/api/recompensas/:id/cancelar", async (req, res) => {
   res.json(vistaDueno(await cancelar(r.id)));
 });
 
+// --- Micropagos a los nodos de la red ---
+
+app.post("/api/nodos/confirmar", (req, res) => {
+  res.json(confirmarAviso(req.body ?? {}));
+});
+
+app.get("/api/nodos/:id", (req, res) => {
+  res.json(vistaNodo(req.params.id));
+});
+
 // --- Panel web "Mi Escudo": cuentas de rescate (el servidor no puede leerlas) ---
 
 app.get("/api/rescate/sal", (req, res) => {
@@ -137,5 +148,9 @@ app.listen(config.puerto, async () => {
   } catch (e) {
     console.error("[recompensas] no se pudo preparar la cuenta de plataforma:", e);
   }
+  console.log(`[nodos] fondo de la red (testnet): ${cuentaFondo()}`);
+  setInterval(() => {
+    pagarNodos().catch((e) => console.error("[nodos] no se pudo pagar:", e?.response?.data?.extras?.result_codes ?? e));
+  }, config.intervaloPagoNodosMs);
   if (!config.twApiKey) console.warn("[recompensas] Falta TW_API_KEY: no se podrán crear escrows.");
 });

@@ -142,8 +142,23 @@ class ServiceLocator private constructor(context: Context) {
         shield = coordinator.state
     )
 
+    /** Lo que este teléfono ganó ayudando a la red (avisos entregados y parte de recompensas). */
+    suspend fun nodeStats(): org.json.JSONObject? =
+        if (config.rewardServerUrl.isBlank()) null
+        else runCatching { serverClient.call("GET", "/api/nodos/${config.nodeId}", null) }.getOrNull()
+
     init {
         sync.onCommand = ::execute
+        sync.onUsefulRelay = { deviceId, nodeId, at ->
+            if (config.rewardServerUrl.isNotBlank()) appScope.launch {
+                runCatching {
+                    serverClient.call(
+                        "POST", "/api/nodos/confirmar",
+                        org.json.JSONObject().put("idEquipo", deviceId).put("idNodo", nodeId).put("en", at)
+                    )
+                }
+            }
+        }
     }
 
     /** Ejecuta en ESTE equipo una orden que mandó alguien del círculo. */

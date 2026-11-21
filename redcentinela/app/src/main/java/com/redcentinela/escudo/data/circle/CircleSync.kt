@@ -59,6 +59,12 @@ class CircleSync(
     private val _remote = MutableStateFlow<Map<String, RemoteState>>(emptyMap())
     val remote: StateFlow<Map<String, RemoteState>> = _remote.asStateFlow()
 
+    /**
+     * Lo conecta el contenedor: un teléfono de la red (nodo) entregó un aviso
+     * válido y nuevo de alguien de mi círculo; se confirma para que cobre.
+     */
+    var onUsefulRelay: ((deviceId: String, nodeId: String, at: Long) -> Unit)? = null
+
     /** Lo conecta el contenedor: ejecuta una orden recibida del círculo. */
     var onCommand: (suspend (RemoteCommand, CircleMember) -> Unit)? = null
 
@@ -214,7 +220,14 @@ class CircleSync(
         val sighting = BleCodec.parse(raw, 0, json.optLong("at", msg.timeSec * 1000)) ?: return
         // Si lo guardó un teléfono sin internet, llega tarde: se anota cuándo.
         val delivered = msg.timeSec * 1000
+        // Útil = trae una ubicación válida que no llegó ya por internet en ese rato.
+        val node = json.optString("n").takeIf { Regex("^[0-9a-f]{16}$").matches(it) }
+        val useful = node != null && BleCodec.locate(sighting, member.secret) != null &&
+            _remote.value[member.id]?.points.orEmpty().none {
+                it.via == CommChannel.INTERNET && kotlin.math.abs(it.point.capturedAt - sighting.at) < USEFUL_GAP_MS
+            }
         applySighting(member, sighting, deliveredAt = delivered.takeIf { it - sighting.at > LATE_MS })
+        if (useful) onUsefulRelay?.invoke(member.id, node!!, sighting.at)
     }
 
     // --- Entrada: SMS --------------------------------------------------------
@@ -276,7 +289,7 @@ class CircleSync(
         if (!flushing.tryLock()) return
         try {
             forwardQueue.flush { e ->
-                val body = JSONObject().put("a", e.raw).put("at", e.at)
+                val body = JSONObject().put("a", e.raw).put("at", e.at).put("n", config.nodeId)
                 relay.publish(sightTopic(e.deviceId), body.toString())
             }
         } finally {
@@ -384,6 +397,7 @@ class CircleSync(
             RemoteCommand.ROBO, RemoteCommand.PERDIDA, RemoteCommand.RECUPERADO, RemoteCommand.SONAR, RemoteCommand.BUSCAR
         )
         private const val FLUSH_EVERY_MS = 30_000L
+        private const val USEFUL_GAP_MS = 2 * 60_000L
         /** Un aviso reenviado que llega más tarde que esto se marca "entregado tarde". */
         private const val LATE_MS = 5 * 60_000L
         private const val MAX_POINTS = 600

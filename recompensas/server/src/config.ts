@@ -28,6 +28,14 @@ export const config = {
   /** Monto máximo de una recompensa, en USDC. */
   maxRecompensaUsdc: Number(env.MAX_RECOMPENSA_USDC ?? 50),
 
+  /** Micropagos a los nodos: USDC por aviso útil, topes diarios y cada cuánto se paga. */
+  pagoPorAvisoUsdc: Number(env.PAGO_POR_AVISO_USDC ?? 0.01),
+  avisosMaxPorEquipoDia: Number(env.AVISOS_MAX_POR_EQUIPO_DIA ?? 30),
+  avisosMaxPorNodoDia: Number(env.AVISOS_MAX_POR_NODO_DIA ?? 100),
+  intervaloPagoNodosMs: Number(env.INTERVALO_PAGO_NODOS_MS ?? 120_000),
+  /** Porcentaje máximo de la recompensa que el dueño puede compartir con la red. */
+  porcentajeRedMax: 50,
+
   directorioDatos: resolve(env.DIRECTORIO_DATOS ?? "datos"),
   /** Carpeta con la página de reclamo ya compilada (recompensas/web/dist). */
   directorioWeb: resolve(env.DIRECTORIO_WEB ?? "../web/dist"),

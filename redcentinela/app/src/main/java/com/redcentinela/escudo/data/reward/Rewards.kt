@@ -114,10 +114,12 @@ class RewardException(message: String) : IOException(message)
 /** Cliente HTTP del servidor de recompensas (recompensas/server). */
 class RewardClient(private val baseUrl: () -> String) {
 
-    suspend fun create(deviceId: String, ownerName: String, amountBs: Int, message: String): Pair<JSONObject, String> {
+    suspend fun create(
+        deviceId: String, ownerName: String, amountBs: Int, message: String, sharePct: Int = 0
+    ): Pair<JSONObject, String> {
         val body = JSONObject()
             .put("dispositivoId", deviceId).put("nombreDueno", ownerName)
-            .put("montoBs", amountBs).put("mensaje", message)
+            .put("montoBs", amountBs).put("mensaje", message).put("porcentajeRed", sharePct)
         val r = call("POST", "/api/recompensas", body, null)
         return r.getJSONObject("recompensa") to r.getString("token")
     }
@@ -248,7 +250,8 @@ class RewardManager(
                 deviceId = config.deviceId,
                 ownerName = config.userName.ifBlank { "su dueño" },
                 amountBs = config.rewardBs,
-                message = config.rewardMessage
+                message = config.rewardMessage,
+                sharePct = config.rewardSharePct
             )
             Reward(
                 id = json.getString("id"), code = json.getString("codigo"), token = token,

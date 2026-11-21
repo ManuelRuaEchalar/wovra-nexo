@@ -227,6 +227,13 @@ function Cuerpo({
         <Aviso titulo="¡Gracias por devolverlo!" tono="ok">
           La recompensa ya fue pagada{r.reclamante ? ` a ${r.reclamante.nombre}` : ''}. Gracias a ti, un celular volvió
           con su dueño.
+          {r.repartoRed && (
+            <>
+              {' '}
+              Además, {usdc(r.repartoRed.montoUsdc)} USDC se repartieron entre {r.repartoRed.nodos}{' '}
+              {r.repartoRed.nodos === 1 ? 'teléfono' : 'teléfonos'} de la red que ayudaron a ubicarlo.
+            </>
+          )}
         </Aviso>
       )
     case 'devuelta':

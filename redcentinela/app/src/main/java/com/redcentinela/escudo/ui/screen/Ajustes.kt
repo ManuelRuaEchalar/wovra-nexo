@@ -164,6 +164,18 @@ fun AjustesScreen(vm: EscudoViewModel, refresco: Int, onGuardian: () -> Unit) {
                     ayuda = "50", teclado = KeyboardType.Number
                 )
                 Campo("Mensaje para quien lo encuentre", mensajeRecompensa, { mensajeRecompensa = it.take(120) }, ayuda = "Gracias por devolverlo")
+                var compartir by rememberSaveable { mutableStateOf(vm.config.rewardSharePct > 0) }
+                Tarjeta(relleno = 16.dp) {
+                    FilaItem(
+                        "Compartir 10 % con la red",
+                        "Si te lo devuelven, una parte va a los teléfonos que lo vieron y avisaron dónde estaba"
+                    ) {
+                        Interruptor(compartir) {
+                            compartir = it
+                            vm.config.rewardSharePct = if (it) 10 else 0
+                        }
+                    }
+                }
                 Campo("Servidor de recompensas", servidorRecompensas, { servidorRecompensas = it.trim() }, ayuda = "https://…", teclado = KeyboardType.Uri)
                 val monto = recompensa.toIntOrNull() ?: 0
                 if (Triple(monto, mensajeRecompensa.trim(), servidorRecompensas.trimEnd('/')) != recompensaGuardada) {
@@ -181,6 +193,10 @@ fun AjustesScreen(vm: EscudoViewModel, refresco: Int, onGuardian: () -> Unit) {
                     }
                 }
             }
+        }
+
+        Seccion("Ayudas a la red") {
+            AyudasRed(vm)
         }
 
         Seccion("Panel web") {
@@ -301,3 +317,49 @@ private fun PanelWeb(vm: EscudoViewModel) {
         }
     }
 }
+
+/**
+ * Lo que este teléfono ganó como nodo: cada aviso útil que entregó de un
+ * celular ajeno en alerta se paga en USDC desde el fondo de la red.
+ */
+@Composable
+private fun AyudasRed(vm: EscudoViewModel) {
+    val stats by vm.nodeStats.collectAsStateWithLifecycle()
+    androidx.compose.runtime.LaunchedEffect(Unit) { vm.refreshNodeStats() }
+    val uri = androidx.compose.ui.platform.LocalUriHandler.current
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            "Con el Escudo activo, tu celular escucha por Bluetooth a los celulares perdidos o robados que pasan cerca " +
+                "y entrega su aviso cifrado (sin poder leerlo). Cada aviso útil se paga en USDC en la red Stellar, " +
+                "desde un fondo que se alimenta con las suscripciones.",
+            style = Tipo.Nota
+        )
+        val s = stats
+        Tarjeta(relleno = 16.dp) {
+            if (s == null) {
+                Column(Modifier.padding(vertical = 14.dp)) {
+                    Text("Todavía no hay datos de la red.", style = Tipo.Nota)
+                }
+            } else {
+                FilaItem("Avisos útiles entregados", "Celulares ajenos que ayudaste a ubicar") {
+                    Text(s.optInt("avisos").toString(), style = Tipo.Fila, color = Medio)
+                }
+                Separador()
+                FilaItem("Ganado por avisos", "Pagado ${usdc(s.optDouble("pagadoUsdc"))} · por pagar ${usdc(s.optDouble("pendienteUsdc"))}") {
+                    Text(usdc(s.optDouble("ganadoUsdc")), style = Tipo.Fila, color = Medio)
+                }
+                if (s.optDouble("recompensasUsdc") > 0) {
+                    Separador()
+                    FilaItem("De recompensas compartidas", "Dueños que recuperaron su celular gracias a tu aviso") {
+                        Text(usdc(s.optDouble("recompensasUsdc")), style = Tipo.Fila, color = Medio)
+                    }
+                }
+            }
+        }
+        s?.optString("enlaceCuenta")?.takeIf { it.isNotBlank() }?.let { enlace ->
+            Enlace("Ver tu cuenta en la red Stellar", color = Medio) { runCatching { uri.openUri(enlace) } }
+        }
+    }
+}
+
+private fun usdc(v: Double) = if (v.isNaN()) "0 USDC" else "%.2f USDC".format(v).replace('.', ',')
