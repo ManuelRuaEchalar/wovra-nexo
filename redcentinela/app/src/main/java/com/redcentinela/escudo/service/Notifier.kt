@@ -40,7 +40,7 @@ class Notifier(context: Context) {
             ShieldStatus.ALERTA_PERDIDA -> "Reportado como perdido · enviando ubicación"
         }
         return NotificationCompat.Builder(app, CH_SERVICE)
-            .setContentTitle("Red Centinela")
+            .setContentTitle("Dendra")
             .setContentText(text)
             .setSmallIcon(R.drawable.ic_shield)
             .setOngoing(true)

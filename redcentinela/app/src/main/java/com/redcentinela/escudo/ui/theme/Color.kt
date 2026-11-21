@@ -2,7 +2,7 @@ package com.redcentinela.escudo.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Sistema Halo + Nocturno (líneas de diseño de Red Centinela).
+// Sistema Halo + Nocturno (líneas de diseño de Dendra).
 
 // Día · Halo
 val Fondo = Color(0xFFF4F9F6)

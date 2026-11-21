@@ -251,7 +251,7 @@ async function desplegarYFondear(id: string, dueno: Keypair) {
     {
       engagementId: `recompensa-${r.id}`,
       titulo: `Recompensa por devolver el celular de ${r.nombreDueno}`,
-      descripcion: "Red Centinela · recompensa garantizada por devolver un celular perdido",
+      descripcion: "Dendra · recompensa garantizada por devolver un celular perdido",
       monto: r.montoUsdc,
       hito: "Celular devuelto a su dueño",
       roles: {

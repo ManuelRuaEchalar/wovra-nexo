@@ -128,7 +128,7 @@ fun AjustesScreen(vm: EscudoViewModel, refresco: Int, onGuardian: () -> Unit) {
         }
         if (apagadoFalso && !accesibilidad) {
             AvisoAmbar(
-                "Para el apagado falso falta activar \"Red Centinela · Apagado falso\" en Accesibilidad.",
+                "Para el apagado falso falta activar \"Dendra · Apagado falso\" en Accesibilidad.",
                 accion = "Activar"
             ) { Permisos.abrirAccesibilidad(context) }
         }

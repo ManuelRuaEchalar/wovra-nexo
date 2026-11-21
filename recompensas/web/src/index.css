@@ -54,7 +54,7 @@ p { max-width: 62ch; }
 /* --- Cabecera --- */
 nav { display: flex; justify-content: space-between; align-items: center; height: 92px; gap: 24px; }
 .marca { display: inline-flex; gap: 10px; align-items: center; font-weight: 600; letter-spacing: -0.04em; font-size: 20px; }
-.marca svg { width: 26px; height: 30px; color: var(--medio); }
+.marca svg { width: 40px; height: 25px; color: var(--medio); }
 .enlaces { display: flex; align-items: center; gap: 26px; font-size: 14px; }
 .enlaces a:hover { color: var(--medio); }
 .chip-prueba {
