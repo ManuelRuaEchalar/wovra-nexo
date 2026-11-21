@@ -18,6 +18,9 @@ import com.redcentinela.escudo.data.comm.SmsCommLink
 import com.redcentinela.escudo.data.finder.ToneFeedbackEmitter
 import com.redcentinela.escudo.data.location.FusedLocationTracker
 import com.redcentinela.escudo.data.net.RelayClient
+import com.redcentinela.escudo.data.reward.RewardClient
+import com.redcentinela.escudo.data.reward.RewardManager
+import com.redcentinela.escudo.data.reward.RewardStore
 import com.redcentinela.escudo.data.shutdown.AndroidBatteryGauge
 import com.redcentinela.escudo.data.shutdown.AndroidSystemSignalSource
 import com.redcentinela.escudo.data.storage.EncryptedLocationLog
@@ -115,6 +118,16 @@ class ServiceLocator private constructor(context: Context) {
         isLocked = {
             (appContext.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager).isKeyguardLocked
         }
+    )
+
+    /** Recompensa garantizada en Stellar si este celular se pierde. */
+    val rewards = RewardManager(
+        config = config,
+        client = RewardClient { config.rewardServerUrl },
+        store = RewardStore(securePrefs("escudo_recompensa")),
+        relay = relay,
+        scope = appScope,
+        shield = coordinator.state
     )
 
     init {

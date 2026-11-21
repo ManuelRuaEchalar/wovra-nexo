@@ -20,6 +20,7 @@ siguiendo las líneas de diseño **Halo + Nocturno**.
 | Guardián: llavero Bluetooth tipo iTag | Programado, **sin probar con un llavero real** |
 | Apagado falso | Funciona con el permiso de accesibilidad (ver notas) |
 | Modo encontrado (pantalla sobre el bloqueo) | Funciona |
+| Recompensa garantizada en Stellar (escrow de Trustless Work) al reportarlo perdido: monto y QR en la pantalla de perdido; el dueño confirma el pago al recuperarlo | Programado, **sin probar en teléfonos** (requiere el servidor de `recompensas/`) |
 | Fotos con la cámara frontal, desbloqueo fallido | No incluido |
 | Reporte por web / número de servicio, mapa de flasheo | No incluido (rol Servidor) |
 | Ciudad (Fila, Micros, Señal), Llegué, Huellita | Solo aparecen como "Próximamente" |

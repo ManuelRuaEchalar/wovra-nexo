@@ -67,6 +67,7 @@ import com.redcentinela.escudo.ui.theme.Texto2
 import com.redcentinela.escudo.ui.theme.TextoNoche
 import com.redcentinela.escudo.ui.theme.Tinta
 import com.redcentinela.escudo.ui.theme.Tipo
+import com.redcentinela.escudo.ui.component.TarjetaRecompensa
 import com.redcentinela.escudo.util.Format
 import kotlinx.coroutines.delay
 
@@ -159,6 +160,8 @@ fun EscudoScreen(
                 )
             }
         }
+
+        TarjetaRecompensa(vm)
 
         if (!activo) {
             BotonPrincipal("Activar Escudo") { vm.startShield() }
