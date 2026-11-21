@@ -1,3 +1,17 @@
+# Sitio web de Dendra
+
+Un solo proyecto Vite + React con tres rutas, cada una cargada por separado:
+
+- `/`: landing (`src/landing/`). Hero con fondo animado, navbar, la explicación con celulares 3D (Three.js), en español e inglés.
+- `/r/:id`: página de reclamo de la recompensa (abajo).
+- `/panel`: panel web del dueño (`src/panel/`).
+
+## Landing
+
+- **Fondo del hero:** se cambia en una línea, `FONDO` en `src/landing/config.ts` (`'dendritas-luz'` o `'sinapsis-cerca'`). Para comparar sin tocar código: `/?fondo=sinapsis-cerca`.
+- **Textos:** `src/landing/textos.ts`, español e inglés con la misma forma. El idioma se elige con el botón de la barra o con `?lang=en`.
+- **Celulares 3D:** `src/landing/senal/escena3d.ts` (poses por paso, señal de partículas). Las capturas reales van en `src/landing/senal/capturas/` (ver su `LEEME.md`).
+
 # Página de reclamo de recompensa
 
 Es la página que abre el QR de la pantalla del celular perdido (`/r/:id?c=CODIGO`). Quien encontró el celular:

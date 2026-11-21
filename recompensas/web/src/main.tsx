@@ -1,46 +1,36 @@
-import { StrictMode } from 'react'
+import { StrictMode, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
-import { PollarProvider } from '@pollar/react'
-import '@pollar/react/styles.css'
 import './index.css'
-import App from './App'
-import { api, type ConfigPublica } from './api'
-import Panel from './panel/Panel'
 
+/*
+ * Un solo sitio, tres rutas. Cada una carga solo lo suyo:
+ *   /         landing (Three.js y los fondos animados)
+ *   /r/:id    página de reclamo de la recompensa (Pollar, Stellar)
+ *   /panel    panel web del dueño (mapa, descifrado en el navegador)
+ */
 const raiz = createRoot(document.getElementById('root')!)
+const ruta = location.pathname
 
-function montar(config: ConfigPublica) {
-  const app = <App config={config} />
+if (ruta === '/' || ruta === '/index.html') {
+  const Landing = lazy(() => import('./landing/Landing'))
   raiz.render(
     <StrictMode>
-      {config.pollarClavePublica ? (
-        <PollarProvider client={{ apiKey: config.pollarClavePublica, stellarNetwork: 'testnet' }}>
-          {app}
-        </PollarProvider>
-      ) : (
-        app
-      )}
+      <Suspense fallback={<div className="landing-cargando" />}>
+        <Landing />
+      </Suspense>
     </StrictMode>,
   )
-}
-
-if (location.pathname.startsWith('/panel')) {
+} else if (ruta.startsWith('/panel')) {
+  document.title = 'Recompensa garantizada · Dendra'
   // El panel no usa Pollar: solo descifra en el navegador y habla con el relevo.
-  raiz.render(
-    <StrictMode>
-      <Panel />
-    </StrictMode>,
+  import('./panel/Panel').then(({ default: Panel }) =>
+    raiz.render(
+      <StrictMode>
+        <Panel />
+      </StrictMode>,
+    ),
   )
 } else {
-  api
-    .config()
-    .then(montar)
-    .catch(() =>
-      montar({
-        red: 'testnet',
-        pollarClavePublica: null,
-        usdc: { codigo: 'USDC', emisor: 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5' },
-        tasaBsPorUsdc: 6.96,
-      }),
-    )
+  document.title = 'Recompensa garantizada · Dendra'
+  import('./reclamo').then(({ iniciarReclamo }) => iniciarReclamo(raiz))
 }
