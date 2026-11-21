@@ -6,10 +6,14 @@ export const sitio = {
   nombre: 'Red Centinela',
   lema: 'Una red de celulares que se cuidan entre sí. Empezamos en Sucre, protegiendo tu teléfono.',
   ciudad: 'Sucre, Bolivia',
-  /** Personas del equipo: { nombre, rol }. */
-  equipo: [] as { nombre: string; rol: string }[],
-  /** Correo o WhatsApp de contacto público del equipo. */
-  contacto: '',
+  /** Personas del equipo: { nombre, rol? }. */
+  equipo: [
+    { nombre: 'Manuel Rua' },
+    { nombre: 'Freddy Valencia Medina' },
+    { nombre: 'Andre Claros' },
+  ] as { nombre: string; rol?: string }[],
+  /** Correo de contacto público del equipo. */
+  contacto: 'asd.solucionesdigitales@gmail.com',
   hackathon: 'National Startups Hackathon by Stellar · 2026',
 }
 
