@@ -127,15 +127,15 @@ fun TarjetaRecompensa(vm: EscudoViewModel) {
                 r.claimed -> {
                     BotonPrincipal("Me lo devolvió: pagar ${bs(r.amountBs)} Bs") { vm.confirmReward() }
                     Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                        Enlace("No fue esa persona") { vm.rejectRewardClaim() }
-                        Enlace("Cancelar", color = AmbarTexto) { vm.cancelReward() }
+                        Enlace("No fue esa persona", Modifier.weight(1f)) { vm.rejectRewardClaim() }
+                        Enlace("Cancelar", Modifier.weight(1f), color = AmbarTexto) { vm.cancelReward() }
                     }
                 }
                 r.active -> Enlace("Cancelar y recuperar el dinero", color = AmbarTexto) { vm.cancelReward() }
                 r.finished || r.replaceable -> Enlace("Listo") { vm.dismissReward() }
                 r.failed -> Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                    if (r.claimerName != null) Enlace("Reintentar el pago") { vm.confirmReward() }
-                    Enlace("Devolverme el dinero", color = AmbarTexto) { vm.cancelReward() }
+                    if (r.claimerName != null) Enlace("Reintentar el pago", Modifier.weight(1f)) { vm.confirmReward() }
+                    Enlace("Devolverme el dinero", Modifier.weight(1f), color = AmbarTexto) { vm.cancelReward() }
                 }
             }
             val enlace = r.lastTxUrl ?: r.escrowUrl

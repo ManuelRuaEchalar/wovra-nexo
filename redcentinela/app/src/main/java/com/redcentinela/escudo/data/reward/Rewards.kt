@@ -47,7 +47,9 @@ data class Reward(
     val claimerContact: String? = null,
     val escrowUrl: String? = null,
     val lastTxUrl: String? = null,
-    val error: String? = null
+    val error: String? = null,
+    /** Inicio de la pérdida para la que se creó (alertSince): una pérdida = una recompensa. */
+    val episode: Long = 0
 ) {
     val creating get() = status == "creando"
     val active get() = status == "activa"
@@ -69,6 +71,7 @@ data class Reward(
         .put("amountBs", amountBs).put("amountUsdc", amountUsdc).put("status", status)
         .putOpt("claimerName", claimerName).putOpt("claimerContact", claimerContact)
         .putOpt("escrowUrl", escrowUrl).putOpt("lastTxUrl", lastTxUrl).putOpt("error", error)
+        .put("episode", episode)
         .toString()
 
     /** Mezcla la respuesta del servidor (vista del dueño) con lo guardado. */
@@ -99,7 +102,8 @@ data class Reward(
                 claimerContact = j.optString("claimerContact").ifBlank { null },
                 escrowUrl = j.optString("escrowUrl").ifBlank { null },
                 lastTxUrl = j.optString("lastTxUrl").ifBlank { null },
-                error = j.optString("error").ifBlank { null }
+                error = j.optString("error").ifBlank { null },
+                episode = j.optLong("episode", 0)
             )
         }.getOrNull()
     }
@@ -188,7 +192,21 @@ class RewardManager(
     val problem: StateFlow<String?> = _problem.asStateFlow()
 
     private val mutex = Mutex()
-    @Volatile private var wantsReward = false
+
+    /** Inicio de la pérdida en curso (alertSince), o null si el celular no está perdido. */
+    @Volatile private var lostSince: Long? = null
+
+    /**
+     * Falta publicar la recompensa de ESTA pérdida: no hay ninguna creada para
+     * ella, o la que hubo falló antes de bloquear el dinero. Una pérdida = una
+     * recompensa, aunque después se pague o se cancele (y aunque la app se reinicie).
+     */
+    private val wantsReward: Boolean
+        get() {
+            val since = lostSince ?: return false
+            val r = _reward.value ?: return true
+            return r.episode != since || (r.failed && r.escrowUrl == null)
+        }
 
     /** Reintentos espaciados (1, 2, 4… hasta 15 min) si el servidor o la red fallan. */
     @Volatile private var failures = 0
@@ -201,8 +219,9 @@ class RewardManager(
 
     init {
         scope.launch {
-            shield.map { it.status }.distinctUntilChanged().collect { status ->
-                wantsReward = status == ShieldStatus.ALERTA_PERDIDA
+            shield.map { if (it.status == ShieldStatus.ALERTA_PERDIDA) it.alertSince ?: 0L else null }
+                .distinctUntilChanged().collect { since ->
+                lostSince = since
                 if (wantsReward) {
                     failures = 0
                     nextAttemptAt = 0L
@@ -217,7 +236,8 @@ class RewardManager(
 
     private suspend fun ensureCreated() = mutex.withLock {
         val current = _reward.value
-        if (!enabled || (current != null && !current.replaceable)) return@withLock
+        val since = lostSince ?: return@withLock
+        if (!enabled || !wantsReward || (current != null && !current.replaceable)) return@withLock
         if (System.currentTimeMillis() < nextAttemptAt) return@withLock
         if (!relay.hasInternet()) {
             _problem.value = "Sin internet: la recompensa se publicará al recuperar conexión."
@@ -233,7 +253,8 @@ class RewardManager(
             Reward(
                 id = json.getString("id"), code = json.getString("codigo"), token = token,
                 claimUrl = json.getString("urlReclamo"), amountBs = json.getDouble("montoBs"),
-                amountUsdc = json.getDouble("montoUsdc"), status = json.getString("estado")
+                amountUsdc = json.getDouble("montoUsdc"), status = json.getString("estado"),
+                episode = since
             )
         }.onSuccess {
             _problem.value = null
