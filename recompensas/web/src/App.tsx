@@ -66,11 +66,13 @@ export default function App({ config }: { config: ConfigPublica }) {
 
 // --- Marca y cabecera ---------------------------------------------------------------
 
-export function Escudo() {
+/** Marca de Dendra: dos anillos (neuronas) a −14° y la chispa que pasa entre ellos. */
+export function Logo() {
   return (
-    <svg viewBox="0 0 60 70" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <path d="M30 4 53 13v23c0 14-23 29-23 29S7 50 7 36V13Z" />
-      <path d="m19 33 8 8 15-19" />
+    <svg viewBox="0 0 64 40" fill="none" aria-hidden="true">
+      <ellipse cx="21" cy="20" rx="15" ry="8.5" transform="rotate(-14 21 20)" stroke="currentColor" strokeWidth="2" />
+      <ellipse cx="43" cy="20" rx="15" ry="8.5" transform="rotate(-14 43 20)" stroke="currentColor" strokeWidth="2" opacity="0.45" />
+      <circle cx="32" cy="20" r="3.4" fill="#2bd07e" />
     </svg>
   )
 }
@@ -80,7 +82,7 @@ function Encabezado() {
     <header className="wrap">
       <nav aria-label="Principal">
         <a className="marca" href="#arriba">
-          <Escudo /> {sitio.nombre}
+          <Logo /> {sitio.nombre}
         </a>
         <div className="enlaces">
           <a href="#como">Cómo funciona</a>
@@ -496,7 +498,7 @@ function Preguntas() {
     ],
     [
       '¿Qué pasa si el dueño no confirma?',
-      'El dinero sigue bloqueado; no vuelve solo al dueño. Si hay un desacuerdo, Red Centinela actúa como árbitro del contrato y decide a quién va.',
+      'El dinero sigue bloqueado; no vuelve solo al dueño. Si hay un desacuerdo, Dendra actúa como árbitro del contrato y decide a quién va.',
     ],
     [
       '¿Puedo recibirlo en bolivianos?',
@@ -543,7 +545,7 @@ export function Pie({ r }: { r: Recompensa | null }) {
       <div className="wrap pie-grid">
         <div className="pie-marca">
           <a className="marca" href="#arriba">
-            <Escudo /> {sitio.nombre}
+            <Logo /> {sitio.nombre}
           </a>
           <p>{sitio.lema}</p>
         </div>

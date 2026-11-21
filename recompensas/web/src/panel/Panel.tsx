@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Escudo, Pie } from '../App'
+import { Logo, Pie } from '../App'
 import { sitio } from '../sitio'
 import { abrirBloque, derivarContrasena, type Identidad } from './cripto'
 import { Relevo, vacia, type Punto, type Situacion } from './relevo'
@@ -17,7 +17,7 @@ export default function Panel() {
       <header className="wrap">
         <nav aria-label="Principal">
           <a className="marca" href="/panel">
-            <Escudo /> {sitio.nombre}
+            <Logo /> {sitio.nombre}
           </a>
           <div className="enlaces">
             <span>Panel web</span>

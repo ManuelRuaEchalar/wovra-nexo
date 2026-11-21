@@ -118,7 +118,7 @@ private fun Bienvenida(onStart: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Halo(Modifier.size(width = 34.dp, height = 24.dp), color = Destello, centro = Destello)
-                Text("Red Centinela", fontFamily = Sora, fontSize = 16.sp, color = Color.White)
+                Text("Dendra", fontFamily = Sora, fontSize = 16.sp, color = Color.White)
             }
         }
         Spacer(Modifier.height(28.dp))

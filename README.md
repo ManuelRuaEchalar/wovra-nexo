@@ -1,10 +1,12 @@
-# Wovra / Nexo
+# Dendra
 
-Respaldo del proyecto mientras se elige entre los nombres **Wovra** y **Nexo**.
+El proyecto se llama **Dendra** (antes *Red Centinela*; también se exploraron *Wovra* y *Nexo*).
+Como las dendritas de una neurona, cada celular recibe la señal del otro y la pasa:
+una red de teléfonos que se cuidan entre sí.
 
 Repositorio de destino: `git@github.com:ManuelRuaEchalar/wovra-nexo.git`.
 
-La app y los documentos conservan de momento el nombre Red Centinela. No se han cambiado el identificador Android, los paquetes ni el código por la exploración de nombres o de la landing.
+La app, la web y el servidor ya muestran el nombre Dendra. Todavía conservan el nombre anterior las carpetas, el identificador Android (`com.redcentinela.escudo`), los paquetes de código, la propuesta y los borradores de la landing.
 
 ## Contenido
 

@@ -1,6 +1,6 @@
-# Red Centinela · Escudo (APK Android)
+# Dendra · Escudo (APK Android)
 
-Módulo **Escudo antirrobo** de la propuesta *Red Centinela* (National Tech
+Módulo **Escudo antirrobo** de *Dendra* (antes Red Centinela) (National Tech
 Hackathon Bolivia 2026), en Android nativo con Kotlin y Jetpack Compose,
 siguiendo las líneas de diseño **Halo + Nocturno**.
 
@@ -116,7 +116,7 @@ A). Separa los teléfonos unos 20–30 m: a los ~25 s B suena y ofrece *Reportar
 robo*. En la pantalla de A el guardián pasa a "fuera de alcance".
 
 **6. Apagado falso.** En A: *Ajustes → Activar* en el aviso de accesibilidad y
-enciende "Red Centinela · Apagado falso". Luego **bloquea A** y mantén
+enciende "Dendra · Apagado falso". Luego **bloquea A** y mantén
 presionado el botón de encendido: en vez del menú de apagado aparece
 "Apagando…" y la pantalla queda en negro, pero A sigue encendido, pasa a
 "robado" y B recibe la alerta y la ubicación. Para salir: toca la pantalla

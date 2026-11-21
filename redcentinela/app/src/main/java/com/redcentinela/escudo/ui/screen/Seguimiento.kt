@@ -321,7 +321,7 @@ fun RegistroScreen(vm: EscudoViewModel, memberId: String?, onBack: () -> Unit) {
 }
 
 private fun informe(titulo: String, events: List<EventEntry>, points: List<GeoPoint>): String = buildString {
-    appendLine("RED CENTINELA · Informe del Escudo")
+    appendLine("DENDRA · Informe del Escudo")
     appendLine("$titulo · generado el ${Format.day(System.currentTimeMillis())} a las ${Format.clock(System.currentTimeMillis())}")
     appendLine()
     appendLine("EVENTOS")

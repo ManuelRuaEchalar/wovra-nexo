@@ -3,8 +3,8 @@
  * Lo que quede vacío no se muestra: no publicar datos inventados.
  */
 export const sitio = {
-  nombre: 'Red Centinela',
-  lema: 'Una red de celulares que se cuidan entre sí. Empezamos en Sucre, protegiendo tu teléfono.',
+  nombre: 'Dendra',
+  lema: 'Como las dendritas de una neurona, cada celular recibe la señal del otro. Empezamos en Sucre, protegiendo tu teléfono.',
   ciudad: 'Sucre, Bolivia',
   /** Personas del equipo: { nombre, rol? }. */
   equipo: [
