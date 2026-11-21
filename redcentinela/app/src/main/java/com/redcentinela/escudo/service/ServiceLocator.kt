@@ -12,6 +12,7 @@ import com.redcentinela.escudo.data.ble.TagLink
 import com.redcentinela.escudo.data.circle.CircleStore
 import com.redcentinela.escudo.data.circle.CircleSync
 import com.redcentinela.escudo.data.circle.ForwardQueue
+import com.redcentinela.escudo.data.rescue.RescueManager
 import com.redcentinela.escudo.data.comm.BleCommLink
 import com.redcentinela.escudo.data.comm.LocalCommLink
 import com.redcentinela.escudo.data.comm.RelayCommLink
@@ -126,10 +127,15 @@ class ServiceLocator private constructor(context: Context) {
         }
     )
 
+    private val serverClient = RewardClient { config.rewardServerUrl }
+
+    /** Cuenta de rescate para el panel web (seguir y controlar este celular desde un navegador). */
+    val rescue = RescueManager(config, serverClient)
+
     /** Recompensa garantizada en Stellar si este celular se pierde. */
     val rewards = RewardManager(
         config = config,
-        client = RewardClient { config.rewardServerUrl },
+        client = serverClient,
         store = RewardStore(securePrefs("escudo_recompensa")),
         relay = relay,
         scope = appScope,

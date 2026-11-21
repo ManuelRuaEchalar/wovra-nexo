@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -28,6 +29,7 @@ import com.redcentinela.escudo.ui.Permisos
 import com.redcentinela.escudo.ui.component.AvisoAmbar
 import com.redcentinela.escudo.ui.component.BotonSecundario
 import com.redcentinela.escudo.ui.component.Campo
+import com.redcentinela.escudo.ui.component.Enlace
 import com.redcentinela.escudo.ui.component.Etiqueta
 import com.redcentinela.escudo.ui.component.FilaItem
 import com.redcentinela.escudo.ui.component.Halo
@@ -181,6 +183,10 @@ fun AjustesScreen(vm: EscudoViewModel, refresco: Int, onGuardian: () -> Unit) {
             }
         }
 
+        Seccion("Panel web") {
+            PanelWeb(vm)
+        }
+
         Seccion("Privacidad") {
             Tarjeta(relleno = 16.dp) {
                 Vineta("Tu ubicación solo sale del teléfono cuando está reportado como robado o perdido.")
@@ -237,4 +243,61 @@ private fun Seccion(titulo: String, contenido: @Composable () -> Unit) {
 @Composable
 private fun Prueba(titulo: String, nota: String, onClick: () -> Unit) {
     FilaItem(titulo, nota, onClick = onClick) { Icon(Iconos.Chevron, null, tint = Texto2, modifier = Modifier.size(18.dp)) }
+}
+
+/**
+ * Cuenta de rescate: con un correo y una contraseña, el dueño puede seguir y
+ * controlar este celular desde cualquier navegador (sin necesitar a nadie del
+ * círculo). La contraseña no sale del teléfono.
+ */
+@Composable
+private fun PanelWeb(vm: EscudoViewModel) {
+    val correoGuardado by vm.rescueEmail.collectAsStateWithLifecycle()
+    val trabajando by vm.rescueWorking.collectAsStateWithLifecycle()
+    var editando by rememberSaveable { mutableStateOf(false) }
+    var correo by rememberSaveable { mutableStateOf(correoGuardado ?: "") }
+    var clave by remember { mutableStateOf("") }
+    var clave2 by remember { mutableStateOf("") }
+    val servidor = vm.config.rewardServerUrl
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            "Si no tienes a nadie en tu círculo, o no puedes comunicarte con esa persona, entra desde cualquier " +
+                "computadora para ver dónde está tu celular, reportarlo, hacerlo sonar o terminar la alerta.",
+            style = Tipo.Nota
+        )
+        if (correoGuardado != null && !editando) {
+            Tarjeta(relleno = 16.dp) {
+                Column(Modifier.padding(vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Etiqueta("Cuenta del panel", color = Medio)
+                    Text(correoGuardado!!, style = Tipo.Fila)
+                    if (servidor.isNotBlank()) Text("Entra en $servidor/panel", style = Tipo.Nota)
+                    if (trabajando) Text("Guardando…", style = Tipo.Nota, color = Medio)
+                    else androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                        Enlace("Cambiar contraseña", Modifier.weight(1f)) { editando = true }
+                        Enlace("Eliminar cuenta", Modifier.weight(1f), color = AmbarTexto) { vm.removeRescue() }
+                    }
+                }
+            }
+        } else {
+            Campo("Correo", correo, { correo = it.trim() }, ayuda = "tu@correo.com", teclado = KeyboardType.Email)
+            Campo("Contraseña (mínimo 8 caracteres)", clave, { clave = it }, oculto = true)
+            Campo("Repite la contraseña", clave2, { clave2 = it }, oculto = true)
+            Text(
+                "Anótala en un lugar seguro: no se puede recuperar. Nadie más la conoce, ni siquiera nuestro servidor.",
+                style = Tipo.Nota, color = Texto2
+            )
+            when {
+                servidor.isBlank() -> AvisoAmbar("Primero configura el servidor en \"Recompensa si lo pierdes\".")
+                trabajando -> Text("Cifrando y guardando…", style = Tipo.Nota, color = Medio)
+                else -> BotonSecundario(if (correoGuardado == null) "Crear cuenta del panel" else "Guardar") {
+                    if (clave != clave2) vm.say("Las contraseñas no coinciden.")
+                    else vm.setUpRescue(correo, clave) {
+                        clave = ""; clave2 = ""; editando = false
+                    }
+                }
+            }
+            if (editando) Enlace("Cancelar") { editando = false; clave = ""; clave2 = "" }
+        }
+    }
 }

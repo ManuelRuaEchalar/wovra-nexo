@@ -26,9 +26,18 @@ export class Almacen<T> {
 
   guardar(id: string, valor: T): T {
     this.datos[id] = valor;
+    this.escribir();
+    return valor;
+  }
+
+  borrar(id: string): void {
+    delete this.datos[id];
+    this.escribir();
+  }
+
+  private escribir(): void {
     const temporal = `${this.ruta}.tmp`;
     writeFileSync(temporal, JSON.stringify(this.datos, null, 2), { mode: 0o600 });
     renameSync(temporal, this.ruta);
-    return valor;
   }
 }

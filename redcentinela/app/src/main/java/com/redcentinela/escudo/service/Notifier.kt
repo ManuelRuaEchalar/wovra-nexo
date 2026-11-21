@@ -114,7 +114,7 @@ class Notifier(context: Context) {
         manager.notify(
             ID_RING,
             NotificationCompat.Builder(app, CH_ALERT)
-                .setContentTitle("$by está haciendo sonar este celular")
+                .setContentTitle("${by.replaceFirstChar { it.uppercase() }} está haciendo sonar este celular")
                 .setContentText("Toca para silenciar.")
                 .setSmallIcon(R.drawable.ic_shield)
                 .setPriority(NotificationCompat.PRIORITY_MAX)

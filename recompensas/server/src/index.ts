@@ -15,6 +15,7 @@ import {
   vistaDueno,
   vistaPublica,
 } from "./recompensas.ts";
+import { borrarCuenta, entrar, guardarCuenta, sal } from "./rescate.ts";
 import { USDC } from "./stellar.ts";
 import { ErrorTrustless } from "./trustless.ts";
 
@@ -92,10 +93,29 @@ app.post("/api/recompensas/:id/cancelar", async (req, res) => {
   res.json(vistaDueno(await cancelar(r.id)));
 });
 
+// --- Panel web "Mi Escudo": cuentas de rescate (el servidor no puede leerlas) ---
+
+app.get("/api/rescate/sal", (req, res) => {
+  res.json(sal(req.query.correo));
+});
+
+app.post("/api/rescate", (req, res) => {
+  res.json(guardarCuenta(req.body ?? {}));
+});
+
+app.post("/api/rescate/borrar", (req, res) => {
+  borrarCuenta(req.body ?? {});
+  res.json({ ok: true });
+});
+
+app.post("/api/rescate/entrar", (req, res) => {
+  res.json(entrar(req.body ?? {}));
+});
+
 // Página de reclamo (recompensas/web compilada). /r/:id la abre el QR del celular perdido.
 if (existsSync(config.directorioWeb)) {
   app.use(express.static(config.directorioWeb, { index: false }));
-  app.get(["/", "/r/:id"], (_req, res) => res.sendFile(join(config.directorioWeb, "index.html")));
+  app.get(["/", "/r/:id", "/panel"], (_req, res) => res.sendFile(join(config.directorioWeb, "index.html")));
 }
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

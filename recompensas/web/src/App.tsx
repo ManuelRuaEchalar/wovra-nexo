@@ -66,7 +66,7 @@ export default function App({ config }: { config: ConfigPublica }) {
 
 // --- Marca y cabecera ---------------------------------------------------------------
 
-function Escudo() {
+export function Escudo() {
   return (
     <svg viewBox="0 0 60 70" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
       <path d="M30 4 53 13v23c0 14-23 29-23 29S7 50 7 36V13Z" />
@@ -530,7 +530,7 @@ function Cierre() {
   )
 }
 
-function Pie({ r }: { r: Recompensa | null }) {
+export function Pie({ r }: { r: Recompensa | null }) {
   return (
     <footer className="pie">
       <div className="wrap pie-grid">

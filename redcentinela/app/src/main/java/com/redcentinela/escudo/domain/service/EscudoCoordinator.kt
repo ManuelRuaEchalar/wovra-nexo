@@ -87,7 +87,7 @@ class EscudoCoordinator(
         enterAlert(ShieldStatus.ALERTA_ROBO, reason, by)
         note(
             "Reportado como robado",
-            by?.let { "Desde el celular de $it" } ?: reasonText(reason),
+            by?.let(::origin) ?: reasonText(reason),
             alert = true
         )
     }
@@ -97,15 +97,17 @@ class EscudoCoordinator(
         val current = _state.value.status
         if (current == ShieldStatus.INACTIVO || current == ShieldStatus.ALERTA_PERDIDA) return
         enterAlert(ShieldStatus.ALERTA_PERDIDA, AlertReason.PERDIDA, by)
-        note("Marcado como perdido", by?.let { "Desde el celular de $it" } ?: "Modo encontrado activo")
+        note("Marcado como perdido", by?.let(::origin) ?: "Modo encontrado activo")
     }
+
+    private fun origin(by: String) = if (by == WEB_PANEL) "Desde el panel web" else "Desde el celular de $by"
 
     /** Vuelve a la vigilancia normal tras resolver una alerta. */
     fun standDown(by: String? = null) {
         if (!_state.value.status.isAlert) return
         _state.update { it.copy(status = ShieldStatus.ARMADO, reason = null, alertSince = null, reportedBy = null) }
         persist()
-        note("Recuperado", by?.let { "Lo confirmó $it" } ?: "Vuelve a la vigilancia normal")
+        note("Recuperado", by?.let { if (it == WEB_PANEL) "Lo confirmaste desde el panel web" else "Lo confirmó $it" } ?: "Vuelve a la vigilancia normal")
         kick.update { it + 1 }
         scope?.launch { announce() }
     }
@@ -267,6 +269,8 @@ class EscudoCoordinator(
     }
 
     companion object {
+        /** Nombre con el que llegan las órdenes dadas desde el panel web. */
+        const val WEB_PANEL = "el panel web"
         private const val MAX_FIX_WAIT = 30_000L
         private const val MAX_BACKLOG = 240
         private const val RECENT_EVENTS_MS = 2 * 3_600_000L

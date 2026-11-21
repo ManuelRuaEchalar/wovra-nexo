@@ -89,6 +89,39 @@ class EscudoViewModel(app: Application) : AndroidViewModel(app) {
         _messages.tryEmit(text)
     }
 
+    // --- Panel web (cuenta de rescate) ---------------------------------------
+
+    private val _rescueEmail = MutableStateFlow(locator.rescue.email)
+    val rescueEmail: StateFlow<String?> = _rescueEmail.asStateFlow()
+    private val _rescueWorking = MutableStateFlow(false)
+    val rescueWorking: StateFlow<Boolean> = _rescueWorking.asStateFlow()
+
+    fun setUpRescue(email: String, password: String, done: () -> Unit) {
+        if (_rescueWorking.value) return
+        _rescueWorking.value = true
+        viewModelScope.launch {
+            runCatching { locator.rescue.setUp(email, password) }
+                .onSuccess {
+                    _rescueEmail.value = locator.rescue.email
+                    say("Listo: entra al panel web con ${locator.rescue.email}.")
+                    done()
+                }
+                .onFailure { say(it.message ?: "No se pudo guardar la cuenta del panel") }
+            _rescueWorking.value = false
+        }
+    }
+
+    fun removeRescue() {
+        if (_rescueWorking.value) return
+        _rescueWorking.value = true
+        viewModelScope.launch {
+            runCatching { locator.rescue.remove() }
+                .onSuccess { _rescueEmail.value = null; say("Cuenta del panel web eliminada.") }
+                .onFailure { say(it.message ?: "No se pudo eliminar la cuenta") }
+            _rescueWorking.value = false
+        }
+    }
+
     // --- Escudo ------------------------------------------------------------
 
     fun startShield() {
