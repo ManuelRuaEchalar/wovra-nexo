@@ -21,6 +21,8 @@ export interface Recompensa {
   mensaje: string
   montoBs: number
   montoUsdc: number
+  porcentajeRed?: number
+  repartoRed?: { nodos: number; montoUsdc: number }
   estado: Estado
   contractId?: string
   enlaces?: { escrow: string; contrato: string }

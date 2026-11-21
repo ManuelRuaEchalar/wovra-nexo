@@ -3,6 +3,7 @@ import { Keypair } from "@stellar/stellar-sdk";
 import { Almacen } from "./almacen.ts";
 import { config, explorador } from "./config.ts";
 import { asegurarTrustline, asegurarUsdc, esDireccionValida, saldoUsdc } from "./stellar.ts";
+import { anotarParteRecompensa, nodosQueVieron } from "./nodos.ts";
 import { abrirDisputa, desplegarEscrow, fondearEscrow, resolverDisputa, saldoEscrow } from "./trustless.ts";
 
 /**
@@ -47,6 +48,10 @@ export interface Recompensa {
   mensaje: string;
   montoBs: number;
   montoUsdc: number;
+  /** Porcentaje que el dueño comparte con los nodos que vieron su celular (0 = nada). */
+  porcentajeRed?: number;
+  /** Cómo se repartió el pago con la red, si se compartió. */
+  repartoRed?: { nodos: number; montoUsdc: number };
   estado: Estado;
   dueno: string;
   contractId?: string;
@@ -152,6 +157,8 @@ export function vistaPublica(r: Recompensa) {
     mensaje: r.mensaje,
     montoBs: r.montoBs,
     montoUsdc: r.montoUsdc,
+    porcentajeRed: r.porcentajeRed ?? 0,
+    repartoRed: r.repartoRed,
     estado: r.estado,
     contractId: r.contractId,
     enlaces: r.contractId
@@ -180,7 +187,17 @@ export function vistaDueno(r: Recompensa) {
 
 // ---------- operaciones ----------
 
-export function crear(p: { dispositivoId: string; nombreDueno: string; mensaje?: string; montoBs: number }) {
+export function crear(p: {
+  dispositivoId: string;
+  nombreDueno: string;
+  mensaje?: string;
+  montoBs: number;
+  porcentajeRed?: number;
+}) {
+  const porcentajeRed = Math.round(Number(p.porcentajeRed ?? 0));
+  if (!(porcentajeRed >= 0 && porcentajeRed <= config.porcentajeRedMax)) {
+    throw new ErrorNegocio(`El porcentaje para la red va de 0 a ${config.porcentajeRedMax}`);
+  }
   if (!p.dispositivoId || p.dispositivoId.length > 128) throw new ErrorNegocio("dispositivoId inválido");
   if (!p.nombreDueno?.trim()) throw new ErrorNegocio("Falta el nombre del dueño");
   const montoBs = Math.round(Number(p.montoBs) * 100) / 100;
@@ -206,6 +223,7 @@ export function crear(p: { dispositivoId: string; nombreDueno: string; mensaje?:
     mensaje: (p.mensaje ?? "").trim().slice(0, 200),
     montoBs,
     montoUsdc,
+    porcentajeRed,
     estado: "creando",
     dueno: dueno.publicKey(),
     movimientos: [],
@@ -285,7 +303,10 @@ export function rechazarReclamo(id: string) {
   return guardar(r, { estado: "activa", reclamo: undefined });
 }
 
-/** Reparte todo el saldo del escrow a `destino` mediante disputa + resolución. */
+/**
+ * Reparte todo el saldo del escrow mediante disputa + resolución. En un pago,
+ * si el dueño eligió compartir, una parte va a los nodos que vieron el celular.
+ */
 async function repartir(r: Recompensa, destino: string, tipo: "pago" | "devolucion") {
   const contrato = r.contractId;
   if (!contrato) throw new ErrorNegocio("El escrow todavía no está listo", 409);
@@ -297,10 +318,20 @@ async function repartir(r: Recompensa, destino: string, tipo: "pago" | "devoluci
     r = guardar(r, { movimientos: [...r.movimientos, { tipo: "disputa", hash: d.hash, fecha: ahora() }] });
   }
   const saldo = (await saldoEscrow(contrato)) ?? r.montoUsdc;
-  const res = await resolverDisputa(contrato, [{ address: destino, amount: saldo }], plat);
+  const red = tipo === "pago" && (r.porcentajeRed ?? 0) > 0 ? nodosQueVieron(r.dispositivoId, Date.parse(r.creada)) : [];
+  const porNodo = red.length ? Math.floor(((saldo * (r.porcentajeRed ?? 0)) / 100 / red.length) * 1e7) / 1e7 : 0;
+  const reparto = [{ address: destino, amount: Math.round((saldo - porNodo * red.length) * 1e7) / 1e7 }];
+  if (porNodo > 0) {
+    // Trustless Work exige que cada receptor acepte USDC.
+    for (const n of red) await asegurarTrustline(n.kp);
+    for (const n of red) reparto.push({ address: n.direccion, amount: porNodo });
+  }
+  const res = await resolverDisputa(contrato, reparto, plat);
+  if (porNodo > 0) for (const n of red) anotarParteRecompensa(n.id, porNodo, res.hash);
   return guardar(r, {
     estado: tipo === "pago" ? "pagada" : "devuelta",
     error: undefined,
+    repartoRed: porNodo > 0 ? { nodos: red.length, montoUsdc: Math.round(porNodo * red.length * 1e7) / 1e7 } : undefined,
     movimientos: [...r.movimientos, { tipo, hash: res.hash, fecha: ahora() }],
   });
 }
