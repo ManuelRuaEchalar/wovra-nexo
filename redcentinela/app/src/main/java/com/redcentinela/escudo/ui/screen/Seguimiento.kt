@@ -172,7 +172,8 @@ fun SeguimientoScreen(
                     when (last?.via) {
                         CommChannel.INTERNET -> "Internet"
                         CommChannel.SMS -> "SMS · sin datos"
-                        CommChannel.BLUETOOTH -> "Bluetooth · teléfono cercano"
+                        CommChannel.BLUETOOTH -> if (last.deliveredAt != null) "Bluetooth · lo guardó un teléfono de la red y llegó tarde"
+                            else "Bluetooth · teléfono cercano"
                         else -> "—"
                     }
                 )

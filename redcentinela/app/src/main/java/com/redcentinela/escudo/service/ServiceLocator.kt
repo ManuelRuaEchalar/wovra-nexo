@@ -11,6 +11,7 @@ import com.redcentinela.escudo.data.ble.BleHub
 import com.redcentinela.escudo.data.ble.TagLink
 import com.redcentinela.escudo.data.circle.CircleStore
 import com.redcentinela.escudo.data.circle.CircleSync
+import com.redcentinela.escudo.data.circle.ForwardQueue
 import com.redcentinela.escudo.data.comm.BleCommLink
 import com.redcentinela.escudo.data.comm.LocalCommLink
 import com.redcentinela.escudo.data.comm.RelayCommLink
@@ -66,7 +67,12 @@ class ServiceLocator private constructor(context: Context) {
     val locationLog: LocationLog = EncryptedLocationLog(appContext)
     val circle = CircleStore(securePrefs("escudo_circulo"))
     val relay = RelayClient(appContext) { config.relayUrl }
-    val sync = CircleSync(config, circle, relay, appScope, notifier)
+    private val forwardPrefs = securePrefs("escudo_reenvio")
+    val forwardQueue = ForwardQueue(
+        load = { forwardPrefs.getString("cola", null) },
+        save = { forwardPrefs.edit().putString("cola", it).apply() }
+    )
+    val sync = CircleSync(config, circle, relay, appScope, notifier, forwardQueue)
     val ble = BleHub(appContext, appScope)
     val tag = TagLink(appContext)
     val guardian = GuardianWatch(ble, circle)
