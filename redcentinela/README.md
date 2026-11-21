@@ -46,7 +46,12 @@ siguiendo las líneas de diseño **Halo + Nocturno**.
 - **Bluetooth.** Con el Escudo activo, cada teléfono emite un aviso BLE. Sirve
   para el guardián, para la búsqueda de cerca y como relevo: en alerta el aviso
   lleva la ubicación cifrada, y cualquier teléfono con la app que pase cerca
-  la reenvía por internet sin poder leerla.
+  la reenvía por internet sin poder leerla. Si ese teléfono tampoco tiene
+  internet, **guarda el aviso** (hasta 12 h, uno cada 5 min por equipo) y lo
+  entrega en cuanto se conecta. Cada aviso conserva la hora en que se captó:
+  uno entregado tarde entra en la ruta en su lugar y nunca reemplaza una
+  posición más nueva que haya llegado por otro teléfono. Solo se reenvía por
+  internet, nunca por SMS, para no gastar el saldo de un desconocido.
 - **La ubicación no sale del teléfono en el día a día.** Solo se comparte al
   estar reportado.
 
