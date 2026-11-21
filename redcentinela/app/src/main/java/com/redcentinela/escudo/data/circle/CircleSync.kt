@@ -16,6 +16,7 @@ import com.redcentinela.escudo.domain.model.RemoteCommand
 import com.redcentinela.escudo.domain.model.RemoteState
 import com.redcentinela.escudo.domain.model.ShieldStatus
 import com.redcentinela.escudo.domain.model.TrackPoint
+import com.redcentinela.escudo.domain.service.EscudoCoordinator
 import com.redcentinela.escudo.service.EscudoConfig
 import com.redcentinela.escudo.service.Notifier
 import kotlinx.coroutines.CoroutineScope
@@ -138,7 +139,13 @@ class CircleSync(
 
     /** Valida y ejecuta una orden (llegue por internet o por SMS). */
     suspend fun acceptCommand(command: RemoteCommand, fromId: String, at: Long) {
-        val from = circle.byId(fromId) ?: return
+        // El panel web firma como este mismo equipo: es el dueño desde un navegador.
+        val from = if (fromId == config.deviceId) {
+            if (command !in WEB_COMMANDS) return
+            CircleMember(config.deviceId, EscudoCoordinator.WEB_PANEL, config.secret)
+        } else {
+            circle.byId(fromId) ?: return
+        }
         val now = clock()
         if (at <= config.lastCommandAt || at < now - MAX_COMMAND_AGE || at > now + CLOCK_SKEW) return
         config.lastCommandAt = at
@@ -373,6 +380,9 @@ class CircleSync(
         private const val NOTIFY_WINDOW = 15 * 60_000L
         private const val KEEP_BEFORE_ALERT = 2 * 3_600_000L
         private const val SIGHTING_EVERY_MS = 8_000L
+        private val WEB_COMMANDS = setOf(
+            RemoteCommand.ROBO, RemoteCommand.PERDIDA, RemoteCommand.RECUPERADO, RemoteCommand.SONAR, RemoteCommand.BUSCAR
+        )
         private const val FLUSH_EVERY_MS = 30_000L
         /** Un aviso reenviado que llega más tarde que esto se marca "entregado tarde". */
         private const val LATE_MS = 5 * 60_000L

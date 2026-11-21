@@ -127,7 +127,7 @@ class RewardClient(private val baseUrl: () -> String) {
     suspend fun reject(id: String, token: String) = call("POST", "/api/recompensas/$id/rechazar", JSONObject(), token)
     suspend fun cancel(id: String, token: String) = call("POST", "/api/recompensas/$id/cancelar", JSONObject(), token)
 
-    private suspend fun call(method: String, path: String, body: JSONObject?, token: String?): JSONObject =
+    suspend fun call(method: String, path: String, body: JSONObject?, token: String? = null): JSONObject =
         withContext(Dispatchers.IO) {
             val base = baseUrl().trimEnd('/')
             if (base.isBlank()) throw RewardException("Falta configurar el servidor de recompensas")

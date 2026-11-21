@@ -93,6 +93,14 @@ class EscudoConfig(context: Context) {
         get() = prefs.getLong(KEY_INBOX, 0)
         set(value) = prefs.edit().putLong(KEY_INBOX, value).apply()
 
+    /** Correo de la cuenta de rescate del panel web (null = sin cuenta). */
+    var rescueEmail: String?
+        get() = prefs.getString(KEY_RESCUE_EMAIL, null)
+        set(value) = prefs.edit().putString(KEY_RESCUE_EMAIL, value).apply()
+
+    /** Prueba ante el servidor de que este celular es dueño de su cuenta de rescate. */
+    val rescueToken: String by lazy { stored(KEY_RESCUE_TOKEN) { Crypto.randomHex(32) } }
+
     /** Marca de la última orden aplicada: evita repetir órdenes viejas. */
     var lastCommandAt: Long
         get() = prefs.getLong(KEY_CMD, 0)
@@ -111,6 +119,8 @@ class EscudoConfig(context: Context) {
         private const val KEY_REWARD_BS = "reward_bs"
         private const val KEY_REWARD_MSG = "reward_msg"
         private const val KEY_REWARD_URL = "reward_url"
+        private const val KEY_RESCUE_EMAIL = "rescue_email"
+        private const val KEY_RESCUE_TOKEN = "rescue_token"
         private const val KEY_ID = "device_id"
         private const val KEY_SECRET = "secret"
         private const val KEY_NAME = "name"
