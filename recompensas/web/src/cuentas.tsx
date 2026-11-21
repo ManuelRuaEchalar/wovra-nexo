@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { usePollar } from '@pollar/react'
+import type { WalletInfo } from '@pollar/core'
 import { Asset, Horizon, Keypair, Networks, Operation, TransactionBuilder } from '@stellar/stellar-sdk'
 import type { ConfigPublica } from './api'
 
@@ -16,6 +17,14 @@ export interface PropsCuenta {
 
 const horizon = new Horizon.Server('https://horizon-testnet.stellar.org')
 
+/** Texto de error con el detalle que devuelve Pollar (el SDK solo pone el código en `message`). */
+function textoError(e: unknown): string {
+  if (!(e instanceof Error)) return String(e)
+  const x = e as Error & { body?: unknown; details?: string }
+  const cuerpo = x.body && typeof x.body === 'object' && Object.keys(x.body).length ? JSON.stringify(x.body) : ''
+  return [x.message, x.details, cuerpo].filter(Boolean).join(' · ')
+}
+
 async function tieneUsdc(g: string, usdc: ConfigPublica['usdc']): Promise<boolean | null> {
   try {
     const cuenta = await horizon.loadAccount(g)
@@ -27,15 +36,33 @@ async function tieneUsdc(g: string, usdc: ConfigPublica['usdc']): Promise<boolea
   }
 }
 
+/** La billetera Stellar del usuario, aunque Pollar le haya creado también otras (Solana, Polygon). */
+function billeteraStellar(wallet: WalletInfo | null, wallets: WalletInfo[]): WalletInfo | null {
+  const esStellar = (w: WalletInfo) => w.chain === 'STELLAR' || (!w.chain && /^G[A-Z2-7]{55}$/.test(w.address))
+  return wallets.find(esStellar) ?? (wallet && esStellar(wallet) ? wallet : null)
+}
+
 export function CuentaPollar({ config, onDireccion }: PropsCuenta) {
-  const { isAuthenticated, wallet, login, logout, setTrustline } = usePollar()
+  const { isAuthenticated, wallet, wallets, hasWallet, createWallet, login, logout, setTrustline } = usePollar()
   const [email, setEmail] = useState('')
   const [usdcListo, setUsdcListo] = useState<boolean | null>(null)
   const [trabajando, setTrabajando] = useState(false)
   const [error, setError] = useState('')
+  const [esperandoDesde] = useState(() => Date.now())
+  const [, refrescar] = useState(0)
 
-  const direccion = wallet?.chain && wallet.chain !== 'STELLAR' ? null : (wallet?.address ?? null)
-  const lista = !!direccion && wallet?.provisioning !== 'CREATING'
+  const stellar = billeteraStellar(wallet, wallets ?? [])
+  const direccion = stellar?.address ?? null
+  const creando = stellar?.provisioning === 'CREATING'
+  const fallo = stellar?.provisioning === 'FAILED'
+  const lista = !!direccion && !creando && !fallo
+
+  // Mientras se espera, refresca el aviso de "tarda más de lo normal".
+  useEffect(() => {
+    if (lista || !isAuthenticated) return
+    const t = setInterval(() => refrescar((n) => n + 1), 5000)
+    return () => clearInterval(t)
+  }, [lista, isAuthenticated])
 
   useEffect(() => {
     if (!lista || !direccion) return
@@ -55,6 +82,18 @@ export function CuentaPollar({ config, onDireccion }: PropsCuenta) {
   useEffect(() => {
     onDireccion(lista && usdcListo ? direccion : null)
   }, [lista, usdcListo, direccion, onDireccion])
+
+  const crearBilletera = async () => {
+    setTrabajando(true)
+    setError('')
+    try {
+      await createWallet()
+    } catch (e) {
+      setError(textoError(e))
+    } finally {
+      setTrabajando(false)
+    }
+  }
 
   if (!isAuthenticated) {
     return (
@@ -84,7 +123,49 @@ export function CuentaPollar({ config, onDireccion }: PropsCuenta) {
     )
   }
 
-  if (!lista) return <p className="nota">Creando tu billetera en Stellar…</p>
+  // Sesión iniciada pero sin billetera Stellar: la app de Pollar la crea "a pedido",
+  // o el usuario solo tiene billeteras de otras redes.
+  if (!stellar || fallo) {
+    return (
+      <div className="pila">
+        <p className="nota">
+          {fallo
+            ? 'Pollar no pudo crear tu billetera en Stellar. Intenta de nuevo.'
+            : hasWallet
+              ? 'Tu cuenta de Pollar no tiene todavía una billetera en Stellar.'
+              : 'Sesión iniciada. Falta crear tu billetera.'}
+        </p>
+        <button className="boton" disabled={trabajando} onClick={crearBilletera}>
+          {trabajando ? 'Creando…' : 'Crear mi billetera en Stellar'}
+        </button>
+        {error && <p className="error">{error}</p>}
+        <p className="nota">
+          Diagnóstico: billeteras {JSON.stringify((wallets ?? []).map((w) => [w.chain ?? '?', w.custody, w.provisioning]))},
+          principal {wallet ? `${wallet.chain ?? '?'}/${wallet.provisioning ?? '?'}` : 'ninguna'}
+        </p>
+        <button className="enlace" onClick={() => logout()}>
+          salir
+        </button>
+      </div>
+    )
+  }
+
+  if (creando) {
+    const segundos = Math.round((Date.now() - esperandoDesde) / 1000)
+    return (
+      <div className="pila">
+        <p className="nota">Creando tu billetera en Stellar… (suele tardar unos segundos)</p>
+        {segundos > 45 && (
+          <>
+            <p className="nota">Está tardando más de lo normal. Puedes recargar la página: tu sesión se mantiene.</p>
+            <button className="enlace" onClick={() => location.reload()}>
+              recargar
+            </button>
+          </>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="pila">
@@ -105,7 +186,7 @@ export function CuentaPollar({ config, onDireccion }: PropsCuenta) {
               await setTrustline({ code: config.usdc.codigo, issuer: config.usdc.emisor })
               setUsdcListo(await tieneUsdc(direccion!, config.usdc))
             } catch (e) {
-              setError(e instanceof Error ? e.message : String(e))
+              setError(textoError(e))
             } finally {
               setTrabajando(false)
             }
