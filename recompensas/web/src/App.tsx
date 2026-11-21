@@ -562,12 +562,17 @@ function Pie({ r }: { r: Recompensa | null }) {
             <ul>
               {sitio.equipo.map((p) => (
                 <li key={p.nombre}>
-                  {p.nombre} <span>· {p.rol}</span>
+                  {p.nombre}
+                  {p.rol && <span> · {p.rol}</span>}
                 </li>
               ))}
             </ul>
           )}
-          {sitio.contacto && <p>Contacto: {sitio.contacto}</p>}
+          {sitio.contacto && (
+            <p>
+              Escríbenos: <a href={`mailto:${sitio.contacto}`}>{sitio.contacto}</a>
+            </p>
+          )}
         </div>
         <div>
           <h4>Construido con</h4>
