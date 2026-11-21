@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dendra · Concepto de fondo: dendritas</title>
+<style>
+  /*
+   * Concepto: una sola escena continua, como un plano macro de microscopía de
+   * fluorescencia. Dos neuronas cuyas dendritas casi se tocan; un impulso viaja,
+   * salta en la sinapsis (la chispa del logo) y sigue. Cámara lenta, profundidad
+   * de campo por capas, partículas suspendidas y grano de película.
+   * Paleta del sistema Halo + Nocturno: Noche, Aurora y Destello.
+   */
+  @font-face { font-family: Sora; src: url(../borradores/assets/sora.ttf); }
+  @font-face { font-family: Hanken; src: url(../borradores/assets/hanken_grotesk.ttf); }
+  :root { --noche: #0e3b36; --aurora: #2bd07e; --destello: #9ff0c4; --fondo: #f4f9f6; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #04110f; overflow: hidden; }
+  .escena { position: fixed; inset: 0; overflow: hidden;
+    background:
+      radial-gradient(120% 90% at 62% 40%, #0b2c27 0%, #071c19 45%, #030c0b 100%); }
+  .capa { position: absolute; inset: -6%; will-change: transform, filter; }
+  .capa canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #lejos { filter: blur(7px); opacity: .55; }
+  #cerca { filter: blur(18px); opacity: .9; }
+  .luz { position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(60% 50% at 58% 44%, #2bd07e12 0%, transparent 70%),
+      linear-gradient(115deg, transparent 30%, #9ff0c40a 50%, transparent 70%); mix-blend-mode: screen; }
+  .vineta { position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(130% 100% at 55% 45%, transparent 45%, #020807cc 100%); }
+  .grano { position: absolute; inset: -50%; pointer-events: none; opacity: .14; mix-blend-mode: overlay; }
+
+  /* Texto de muestra, para ver cómo queda la marca encima del fondo. */
+  .texto { position: fixed; left: 7vw; bottom: 12vh; max-width: 620px; color: var(--fondo);
+    transition: opacity .6s ease; }
+  /* Sombra suave detrás del texto para que se lea sobre las dendritas. */
+  .texto::before { content: ''; position: absolute; z-index: -1; inset: -40% -30% -40% -40%;
+    background: radial-gradient(closest-side, #030c0bcc, transparent); pointer-events: none; }
+  .texto.oculto { opacity: 0; }
+  .eyebrow { font: 600 12px/1 Hanken, system-ui, sans-serif; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--destello); margin: 0 0 18px; }
+  h1 { font: 300 clamp(56px, 8vw, 120px)/.95 Sora, sans-serif; letter-spacing: -.06em; margin: 0; }
+  .lema { font: 400 clamp(17px, 1.6vw, 21px)/1.5 Hanken, sans-serif; color: #c9d6d2; margin: 22px 0 0; max-width: 46ch; }
+  .controles { position: fixed; right: 20px; bottom: 18px; display: flex; gap: 8px; }
+  .controles button { font: 600 12px Hanken, sans-serif; color: #c9d6d2; background: #0e3b3699;
+    border: 1px solid #9ff0c433; border-radius: 99px; padding: 8px 14px; cursor: pointer; backdrop-filter: blur(6px); }
+  .controles button:hover { color: #fff; border-color: #9ff0c488; }
+</style>
+</head>
+<body>
+<div class="escena" id="escena">
+  <div class="capa" id="lejos"><canvas id="cLejos"></canvas></div>
+  <div class="capa" id="medio"><canvas id="cMedio"></canvas><canvas id="cFx"></canvas></div>
+  <div class="capa" id="cerca"><canvas id="cCerca"></canvas></div>
+  <div class="luz"></div>
+  <div class="vineta"></div>
+  <div class="grano" id="grano"></div>
+</div>
+
+<div class="texto" id="texto">
+  <p class="eyebrow">Sucre, Bolivia · Red de pruebas</p>
+  <h1>Dendra</h1>
+  <p class="lema">Como las dendritas de una neurona, cada celular recibe la señal del otro. Ninguno está solo.</p>
+</div>
+<div class="controles">
+  <button id="btnTexto">Ocultar texto</button>
+  <button id="btnPausa">Pausar</button>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Utilidades
+// ---------------------------------------------------------------------------
+function semilla(a) { // mulberry32: la escena es siempre la misma
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const lerp = (a, b, t) => a + (b - a) * t;
+const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DPR = Math.min(devicePixelRatio || 1, 1.5);
+
+// Espacio virtual de 1600 × 900; se escala para cubrir la pantalla.
+const VW = 1600, VH = 900;
+
+// ---------------------------------------------------------------------------
+// Crecimiento de dendritas
+// ---------------------------------------------------------------------------
+/**
+ * Hace crecer una rama como una caminata con ruido que se afina y se divide.
+ * Devuelve polilíneas [{x, y, w}] (w = grosor).
+ */
+function crecer(r, x, y, ang, w, largo, prof, ramas, opts = {}) {
+  const paso = 5;
+  const pts = [{ x, y, w }];
+  let a = ang;
+  const n = Math.floor(largo / paso);
+  const curva = (r() - .5) * .03;
+  for (let i = 0; i < n; i++) {
+    let ruido = .42;
+    if (opts.hacia) { // se orienta hacia un punto, con más firmeza al acercarse
+      const dist = Math.hypot(opts.hacia.x - x, opts.hacia.y - y);
+      const cerca = 1 - Math.min(1, dist / 220);
+      ruido *= .25 + .75 * (1 - cerca);
+      const d = Math.atan2(opts.hacia.y - y, opts.hacia.x - x);
+      let dif = d - a; while (dif > Math.PI) dif -= 2 * Math.PI; while (dif < -Math.PI) dif += 2 * Math.PI;
+      a += dif * ((opts.fuerza ?? .08) + cerca * .45);
+    }
+    a += (r() - .5) * ruido + curva;
+    x += Math.cos(a) * paso; y += Math.sin(a) * paso;
+    w = Math.max(w * (opts.afinar ?? .972), .35);
+    pts.push({ x, y, w });
+    if (opts.hacia && Math.hypot(opts.hacia.x - x, opts.hacia.y - y) < 9) break;
+    if (prof > 0 && i > 3 && w > .7 && r() < (opts.dividir ?? .085)) {
+      // Las ramas se abren en horquilla: la madre también se desvía un poco.
+      const lado = r() < .5 ? -1 : 1;
+      crecer(r, x, y, a + lado * (.45 + r() * .55), w * (.55 + r() * .2), largo * (.35 + r() * .35), prof - 1, ramas);
+      a -= lado * (.12 + r() * .2);
+    }
+  }
+  ramas.push(pts);
+  return pts;
+}
+
+/** Una neurona: cuerpo irregular, dendritas alrededor y, opcionalmente, un axón hacia un punto. */
+function neurona(r, cx, cy, radio, nDendritas, alcance, opts = {}) {
+  const ramas = [];
+  const base = r() * Math.PI * 2;
+  for (let i = 0; i < nDendritas; i++) {
+    const a = base + (i / nDendritas) * Math.PI * 2 + (r() - .5) * .5;
+    crecer(r, cx + Math.cos(a) * radio * .8, cy + Math.sin(a) * radio * .8, a,
+      radio * (.32 + r() * .16), alcance * (.6 + r() * .6), 6, ramas);
+  }
+  let camino = null;
+  if (opts.hacia) {
+    const a = Math.atan2(opts.hacia.y - cy, opts.hacia.x - cx) + (r() - .5) * .6;
+    camino = crecer(r, cx + Math.cos(a) * radio * .8, cy + Math.sin(a) * radio * .8, a,
+      radio * .26, 1400, 0, ramas, { hacia: opts.hacia, fuerza: .05, afinar: .996 });
+  }
+  // Contorno del cuerpo (soma) con bordes orgánicos.
+  const contorno = [];
+  for (let i = 0; i < 28; i++) {
+    const a = (i / 28) * Math.PI * 2;
+    contorno.push({ x: cx + Math.cos(a) * radio * (.85 + r() * .3), y: cy + Math.sin(a) * radio * (.8 + r() * .3) });
+  }
+  return { cx, cy, radio, ramas, contorno, camino };
+}
+
+// ---------------------------------------------------------------------------
+// Dibujo con volumen (membrana translúcida, cuerpo y brillo)
+// ---------------------------------------------------------------------------
+/**
+ * Pinta un conjunto de ramas con volumen. Cada pasada (halo, membrana, cuerpo,
+ * brillo) se dibuja opaca en un lienzo aparte y se compone con su transparencia
+ * al final: así las uniones entre segmentos no se ven como cuentas.
+ */
+function dibujarRamas(ctx, ramas, tono, r) {
+  const pasadas = [
+    { k: 3.2, c: tono.halo, a: .035 },
+    { k: 1.6, c: tono.membrana, a: .30 },
+    { k: 1.0, c: tono.cuerpo, a: .58 },
+    { k: .3, c: tono.brillo, a: .45 },
+  ];
+  const W = ctx.canvas.width, H = ctx.canvas.height, m = ctx.getTransform();
+  const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+  const t = tmp.getContext('2d');
+  for (const p of pasadas) {
+    t.setTransform(1, 0, 0, 1, 0, 0); t.clearRect(0, 0, W, H); t.setTransform(m);
+    t.lineCap = 'round'; t.lineJoin = 'round'; t.strokeStyle = `rgb(${p.c})`;
+    for (const pts of ramas) {
+      for (let i = 1; i < pts.length; i++) {
+        t.lineWidth = pts[i].w * p.k;
+        t.beginPath(); t.moveTo(pts[i - 1].x, pts[i - 1].y); t.lineTo(pts[i].x, pts[i].y); t.stroke();
+      }
+    }
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = p.a; ctx.drawImage(tmp, 0, 0); ctx.restore();
+  }
+  for (const pts of ramas) espinas(ctx, pts, tono, r);
+}
+
+function espinas(ctx, pts, tono, r) {
+  // Espinas dendríticas: pequeños brotes con cabeza, el detalle que da realismo.
+  for (let i = 3; i < pts.length - 1; i += 2) {
+    const p = pts[i];
+    if (p.w > 2.6 || r() > .42) continue;
+    const q = pts[i + 1];
+    const ang = Math.atan2(q.y - p.y, q.x - p.x) + (r() < .5 ? -1 : 1) * (1.1 + r() * .6);
+    const l = 3 + r() * 5;
+    const ex = p.x + Math.cos(ang) * l, ey = p.y + Math.sin(ang) * l;
+    ctx.strokeStyle = `rgba(${tono.cuerpo},0.55)`; ctx.lineWidth = .7;
+    ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.fillStyle = `rgba(${tono.brillo},0.65)`;
+    ctx.beginPath(); ctx.arc(ex, ey, .9 + r() * 1.1, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function dibujarSoma(ctx, n, tono) {
+  const g = ctx.createRadialGradient(n.cx - n.radio * .25, n.cy - n.radio * .3, 1, n.cx, n.cy, n.radio * 1.25);
+  g.addColorStop(0, `rgba(${tono.brillo},0.95)`);
+  g.addColorStop(.45, `rgba(${tono.cuerpo},0.85)`);
+  g.addColorStop(1, `rgba(${tono.membrana},0.15)`);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  n.contorno.forEach((p, i) => {
+    const s = n.contorno[(i + 1) % n.contorno.length];
+    const mx = (p.x + s.x) / 2, my = (p.y + s.y) / 2;
+    i === 0 ? ctx.moveTo(mx, my) : ctx.quadraticCurveTo(p.x, p.y, mx, my);
+  });
+  ctx.closePath(); ctx.fill();
+  // Núcleo: más oscuro, con un nucléolo brillante.
+  ctx.fillStyle = 'rgba(4,30,24,0.45)';
+  ctx.beginPath(); ctx.ellipse(n.cx + n.radio * .08, n.cy + n.radio * .05, n.radio * .42, n.radio * .36, .4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = `rgba(${tono.brillo},0.8)`;
+  ctx.beginPath(); ctx.arc(n.cx + n.radio * .15, n.cy, n.radio * .09, 0, Math.PI * 2); ctx.fill();
+}
+
+const TONO = { halo: '43,208,126', membrana: '23,104,79', cuerpo: '43,208,126', brillo: '200,255,225' };
+const TONO_FRIO = { halo: '43,160,130', membrana: '15,70,60', cuerpo: '40,150,115', brillo: '160,230,205' };
+
+// ---------------------------------------------------------------------------
+// Escena
+// ---------------------------------------------------------------------------
+const lienzos = {
+  lejos: document.getElementById('cLejos'),
+  medio: document.getElementById('cMedio'),
+  fx: document.getElementById('cFx'),
+  cerca: document.getElementById('cCerca'),
+};
+let escala = 1, ox = 0, oy = 0, escena = null;
+
+function preparar() {
+  const box = document.getElementById('medio').getBoundingClientRect();
+  for (const c of Object.values(lienzos)) {
+    c.width = Math.round(box.width * DPR); c.height = Math.round(box.height * DPR);
+  }
+  escala = Math.max(box.width / VW, box.height / VH);
+  ox = (box.width - VW * escala) / 2; oy = (box.height - VH * escala) / 2;
+
+  const r = semilla(1729);
+  const sinapsis = { x: 905, y: 430 };
+  // A: emisora (abajo a la izquierda); su axón llega hasta la sinapsis.
+  const A = neurona(r, 560, 740, 30, 8, 250, { hacia: { x: sinapsis.x - 7, y: sinapsis.y + 4 } });
+  // B: receptora (arriba a la derecha); una de sus dendritas llega casi a la sinapsis.
+  const B = neurona(r, 1240, 300, 26, 7, 240, { hacia: { x: sinapsis.x + 7, y: sinapsis.y - 4 } });
+  const caminoB = B.camino.slice().reverse(); // el impulso va de la sinapsis al cuerpo de B
+
+  // Capa lejana: otras neuronas fuera de foco, más frías.
+  const lejanas = [
+    neurona(r, 180, 220, 22, 7, 220), neurona(r, 1420, 720, 24, 7, 230),
+    neurona(r, 820, 140, 18, 6, 200), neurona(r, 1080, 820, 20, 6, 210),
+  ];
+
+  // Partículas suspendidas en el medio (desechos, vesículas).
+  const particulas = Array.from({ length: 70 }, () => ({
+    x: r() * VW, y: r() * VH, rad: .6 + r() * 1.8, vx: (r() - .5) * 4, vy: -1 - r() * 3,
+    a: .15 + r() * .45, fase: r() * 6.28,
+  }));
+  const bokeh = Array.from({ length: 14 }, () => ({
+    x: r() * VW, y: r() * VH, rad: 14 + r() * 46, vx: (r() - .5) * 3, vy: -.5 - r() * 2, a: .05 + r() * .12,
+  }));
+
+  escena = { A, B, caminoB, sinapsis, lejanas, particulas, bokeh, r };
+  pintarEstatico();
+}
+
+function aplicar(ctx) {
+  ctx.setTransform(DPR * escala, 0, 0, DPR * escala, DPR * ox, DPR * oy);
+}
+
+function pintarEstatico() {
+  const { A, B, lejanas, r } = escena;
+  // Lejos
+  let ctx = lienzos.lejos.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, lienzos.lejos.width, lienzos.lejos.height);
+  aplicar(ctx);
+  for (const n of lejanas) { dibujarRamas(ctx, n.ramas, TONO_FRIO, r); dibujarSoma(ctx, n, TONO_FRIO); }
+
+  // Medio (en foco)
+  ctx = lienzos.medio.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, lienzos.medio.width, lienzos.medio.height);
+  aplicar(ctx);
+  for (const n of [A, B]) { dibujarRamas(ctx, n.ramas, TONO, r); dibujarSoma(ctx, n, TONO); }
+  // Botones terminales del axón de A, junto a la sinapsis.
+  const fin = A.camino[A.camino.length - 1];
+  ctx.fillStyle = 'rgba(200,255,225,0.7)';
+  [[0, 0, 3.2], [-6, 5, 2.2], [-3, -6, 2]].forEach(([dx, dy, rr]) => {
+    ctx.beginPath(); ctx.arc(fin.x + dx, fin.y + dy, rr, 0, Math.PI * 2); ctx.fill();
+  });
+
+  // Cerca: una membrana enorme y curva en primer plano (el horizonte) y una rama gruesa cruzando.
+  ctx = lienzos.cerca.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, lienzos.cerca.width, lienzos.cerca.height);
+  aplicar(ctx);
+  const borde = ctx.createLinearGradient(0, 700, 0, 960);
+  borde.addColorStop(0, 'rgba(159,240,196,0.0)');
+  borde.addColorStop(.18, 'rgba(159,240,196,0.22)');
+  borde.addColorStop(.32, 'rgba(23,104,79,0.55)');
+  borde.addColorStop(1, 'rgba(3,14,12,0.95)');
+  ctx.fillStyle = borde;
+  ctx.beginPath(); ctx.moveTo(-200, 1100);
+  ctx.quadraticCurveTo(820, 640, 1800, 960); ctx.lineTo(1800, 1200); ctx.lineTo(-200, 1200); ctx.closePath(); ctx.fill();
+  const rr = semilla(77);
+  const cruz = [];
+  crecer(rr, -60, 120, .35, 16, 520, 1, cruz, { afinar: .992, dividir: .02 });
+  dibujarRamas(ctx, cruz, TONO, rr);
+}
+
+// ---------------------------------------------------------------------------
+// Animación: impulso, sinapsis, partículas y cámara
+// ---------------------------------------------------------------------------
+const CICLO = 8.5;       // segundos por impulso completo
+const T_A = 3.2;         // viaje por el axón de A
+const T_SALTO = .55;     // la chispa cruza la sinapsis
+const T_B = 2.6;         // viaje por la dendrita de B
+let t0 = performance.now(), pausa = false, tPausa = 0;
+
+function puntoEn(camino, f) {
+  const i = Math.min(camino.length - 1, Math.max(0, f * (camino.length - 1)));
+  const a = camino[Math.floor(i)], b = camino[Math.ceil(i)], k = i - Math.floor(i);
+  return { x: lerp(a.x, b.x, k), y: lerp(a.y, b.y, k), w: lerp(a.w, b.w, k) };
+}
+
+function brillo(ctx, x, y, rad, color, alfa) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, rad);
+  g.addColorStop(0, `rgba(${color},${alfa})`); g.addColorStop(1, `rgba(${color},0)`);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.fill();
+}
+
+/** Ilumina el tramo recorrido detrás del impulso (estela). */
+function estela(ctx, camino, f, largo) {
+  const n = camino.length - 1, fin = Math.floor(f * n), ini = Math.max(0, fin - largo);
+  ctx.lineCap = 'round';
+  for (let i = ini + 1; i <= fin; i++) {
+    const k = (i - ini) / (fin - ini + 1);
+    ctx.strokeStyle = `rgba(159,240,196,${.5 * k * k})`;
+    ctx.lineWidth = camino[i].w * 1.3 + 1.2;
+    ctx.beginPath(); ctx.moveTo(camino[i - 1].x, camino[i - 1].y); ctx.lineTo(camino[i].x, camino[i].y); ctx.stroke();
+  }
+}
+
+function cuadro(ahora) {
+  const t = ((pausa ? tPausa : ahora) - t0) / 1000;
+  const { A, B, caminoB, sinapsis, particulas, bokeh } = escena;
+  const ctx = lienzos.fx.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, lienzos.fx.width, lienzos.fx.height);
+  aplicar(ctx);
+  ctx.globalCompositeOperation = 'lighter';
+
+  // Respiración de los cuerpos celulares.
+  brillo(ctx, A.cx, A.cy, A.radio * 2.4, '43,208,126', .10 + .05 * Math.sin(t * .9));
+  brillo(ctx, B.cx, B.cy, B.radio * 2.4, '43,208,126', .08 + .05 * Math.sin(t * .7 + 1));
+
+  // Impulso: A → sinapsis → B.
+  const c = t % CICLO;
+  if (c < T_A) {
+    const f = c / T_A, e = f * f * (3 - 2 * f);
+    estela(ctx, A.camino, e, 34);
+    const p = puntoEn(A.camino, e);
+    brillo(ctx, p.x, p.y, 22, '159,240,196', .55); brillo(ctx, p.x, p.y, 5, '240,255,248', .95);
+  } else if (c < T_A + T_SALTO) {
+    const f = (c - T_A) / T_SALTO;
+    // Vesículas que cruzan el espacio sináptico.
+    for (let i = 0; i < 9; i++) {
+      const k = Math.min(1, f * 1.4 - i * .05);
+      if (k <= 0) continue;
+      const x = lerp(sinapsis.x - 7, sinapsis.x + 7, k) + Math.sin(i * 7.3) * 5;
+      const y = lerp(sinapsis.y + 4, sinapsis.y - 4, k) + Math.cos(i * 4.1) * 5;
+      brillo(ctx, x, y, 3.5, '220,255,236', .8 * (1 - k * .5));
+    }
+    brillo(ctx, sinapsis.x, sinapsis.y, 26 + 70 * f, '43,208,126', .5 * (1 - f) + .15);
+    brillo(ctx, sinapsis.x, sinapsis.y, 10, '245,255,250', .9 * Math.sin(f * Math.PI));
+  } else if (c < T_A + T_SALTO + T_B) {
+    const f = (c - T_A - T_SALTO) / T_B, e = f * f * (3 - 2 * f);
+    estela(ctx, caminoB, e, 30);
+    const p = puntoEn(caminoB, e);
+    brillo(ctx, p.x, p.y, 20, '159,240,196', .5); brillo(ctx, p.x, p.y, 4.5, '240,255,248', .9);
+    brillo(ctx, sinapsis.x, sinapsis.y, 30, '43,208,126', .18 * (1 - f));
+  } else {
+    // B recibe la señal: su cuerpo se enciende y se apaga despacio.
+    const f = (c - T_A - T_SALTO - T_B) / (CICLO - T_A - T_SALTO - T_B);
+    brillo(ctx, B.cx, B.cy, B.radio * (2 + 2.5 * f), '159,240,196', .45 * (1 - f));
+  }
+  // La sinapsis siempre late un poco: es la chispa del logo.
+  brillo(ctx, sinapsis.x, sinapsis.y, 9, '159,240,196', .25 + .15 * Math.sin(t * 2.1));
+
+  // Partículas en suspensión (en foco) y bokeh.
+  for (const p of particulas) {
+    const x = ((p.x + p.vx * t + Math.sin(t * .4 + p.fase) * 6) % VW + VW) % VW;
+    const y = ((p.y + p.vy * t) % VH + VH) % VH;
+    brillo(ctx, x, y, p.rad * 2.2, '200,255,225', p.a * (.6 + .4 * Math.sin(t + p.fase)));
+  }
+  for (const b of bokeh) {
+    const x = ((b.x + b.vx * t) % VW + VW) % VW, y = ((b.y + b.vy * t) % VH + VH) % VH;
+    brillo(ctx, x, y, b.rad, '159,240,196', b.a);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // Cámara: deriva lenta y foco que respira (cada capa a distinta profundidad).
+  if (!reducido) {
+    const dx = Math.sin(t * .045) * 22, dy = Math.cos(t * .037) * 14, s = 1 + Math.sin(t * .03) * .015;
+    document.getElementById('lejos').style.transform = `translate(${dx * .35}px,${dy * .35}px) scale(${s})`;
+    document.getElementById('medio').style.transform = `translate(${dx}px,${dy}px) scale(${s})`;
+    document.getElementById('cerca').style.transform = `translate(${dx * 2.2}px,${dy * 2.2}px) scale(${s * 1.02})`;
+    document.getElementById('medio').style.filter = `blur(${Math.max(0, Math.sin(t * .11) * .9).toFixed(2)}px)`;
+  }
+  // Grano de película: el patrón se desplaza al azar en cada cuadro.
+  grano.style.transform = `translate(${(Math.random() * 100 - 50) | 0}px,${(Math.random() * 100 - 50) | 0}px)`;
+
+  if (!pausa) requestAnimationFrame(cuadro);
+}
+
+// Textura de grano (una sola vez).
+const grano = document.getElementById('grano');
+(() => {
+  const c = document.createElement('canvas'); c.width = c.height = 220;
+  const x = c.getContext('2d'), img = x.createImageData(220, 220);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = Math.random() * 255; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255;
+  }
+  x.putImageData(img, 0, 0);
+  grano.style.backgroundImage = `url(${c.toDataURL()})`;
+})();
+
+// Controles
+document.getElementById('btnTexto').onclick = (e) => {
+  const oculto = document.getElementById('texto').classList.toggle('oculto');
+  e.target.textContent = oculto ? 'Mostrar texto' : 'Ocultar texto';
+};
+document.getElementById('btnPausa').onclick = (e) => {
+  pausa = !pausa;
+  if (pausa) { tPausa = performance.now(); e.target.textContent = 'Seguir'; }
+  else { t0 += performance.now() - tPausa; e.target.textContent = 'Pausar'; requestAnimationFrame(cuadro); }
+};
+
+let espera;
+addEventListener('resize', () => { clearTimeout(espera); espera = setTimeout(preparar, 200); });
+preparar();
+requestAnimationFrame(cuadro);
+</script>
+</body>
+</html>
