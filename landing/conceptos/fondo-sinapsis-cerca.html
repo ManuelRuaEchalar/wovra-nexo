@@ -75,10 +75,11 @@ const $ = (id) => document.getElementById(id);
 // Forma: dos dendritas que casi se tocan
 // ---------------------------------------------------------------------------
 /** Eje que avanza con ruido hacia un destino; el grosor lo define `perfil(t)` (t de 0 a 1). */
-function eje(r, desde, hasta, perfil, ondula = .25) {
+function eje(r, desde, hasta, perfil, ondula = .25, angInicial = null) {
   const pts = [], n = Math.ceil(Math.hypot(hasta.x - desde.x, hasta.y - desde.y) / 4);
-  let x = desde.x, y = desde.y, a = Math.atan2(hasta.y - y, hasta.x - x);
+  let x = desde.x, y = desde.y, a = angInicial ?? Math.atan2(hasta.y - y, hasta.x - x);
   for (let i = 0; i <= n; i++) {
+    if (i > 2 && Math.hypot(hasta.x - x, hasta.y - y) < 5) break; // llegó: no dar vueltas en el destino
     const t = i / n, faltan = n - i;
     let dif = Math.atan2(hasta.y - y, hasta.x - x) - a;
     while (dif > Math.PI) dif -= 2 * Math.PI; while (dif < -Math.PI) dif += 2 * Math.PI;
@@ -110,23 +111,25 @@ function ruido1(r) {
 }
 
 /**
- * El extremo de cada dendrita se abre en varios dedos de distinto largo y
- * grosor que se acercan al espacio central; algunos se vuelven a bifurcar.
+ * Brotes cortos que nacen cerca del final del tronco (desde adentro, para que
+ * no queden sueltos) y se abren un poco hacia el espacio central. Puntas romas.
  * lado = 1 para la emisora (izquierda), -1 para la receptora (derecha).
  */
-function dedos(r, base, lado, cantidad, ramas, puntas) {
+function brotes(r, tronco, lado, cantidad, ramas, puntas) {
+  const nr = ruido1(r);
   for (let i = 0; i < cantidad; i++) {
-    const abanico = i / (cantidad - 1) - .5;
-    const destino = { x: GAP.x - lado * (22 + r() * 80), y: GAP.y + abanico * 240 + (r() - .5) * 60 };
-    const w0 = base.w * (.42 + r() * .3), nr = ruido1(r);
-    const d = eje(r, base, destino, (t) => Math.max(2.4, w0 * (1 - t * .8) * (1 + .32 * nr(t * 7))), .6);
-    ramas.push(d); puntas.push(d[d.length - 1]);
-    // Bifurcación: un dedo más fino sale del tramo final.
-    if (r() < .75) {
-      const p = d[Math.floor(d.length * (.5 + r() * .3))];
-      const fin = { x: GAP.x - lado * (14 + r() * 60), y: p.y + (r() - .5) * 170 };
-      const w1 = p.w * (.55 + r() * .2);
-      const sub = eje(r, p, fin, (t) => Math.max(1.8, w1 * (1 - t * .85) * (1 + .3 * nr(t * 9 + 3))), .75);
+    const j = Math.floor(tronco.length * (.88 + r() * .07)), p = tronco[j], q = tronco[Math.min(j + 1, tronco.length - 1)];
+    const dir = Math.atan2(q.y - p.y, q.x - p.x);
+    const lado2 = i % 2 === 0 ? -1 : 1;                           // alterna arriba y abajo
+    const ang = dir + lado2 * (.4 + r() * .22);
+    const largo = 105 + r() * 45;
+    const destino = { x: p.x + Math.cos(ang - lado2 * .12) * largo, y: p.y + Math.sin(ang - lado2 * .12) * largo };
+    const w0 = p.w * (.4 + r() * .12);
+    const b = eje(r, p, destino, (t) => w0 * (1 - t * .38) * (1 + .2 * nr(t * 4 + i * 5)), .45, ang);
+    ramas.push(b); puntas.push(b[b.length - 1]);
+    if (r() < .4) { // a veces, una bifurcación pequeña
+      const m = b[Math.floor(b.length * .65)], a2 = ang - lado2 * (.45 + r() * .3), l2 = 30 + r() * 26;
+      const sub = eje(r, m, { x: m.x + Math.cos(a2) * l2, y: m.y + Math.sin(a2) * l2 }, (t) => m.w * .6 * (1 - t * .5), .4, a2);
       ramas.push(sub); puntas.push(sub[sub.length - 1]);
     }
   }
@@ -135,16 +138,18 @@ function dedos(r, base, lado, cantidad, ramas, puntas) {
 function construir() {
   const r = semilla(4242), izq = [], der = [], puntasI = [], puntasD = [];
   const nI = ruido1(r), nD = ruido1(r);
-  // Emisora: entra por la izquierda y se abre en dedos antes del espacio central.
-  const troncoI = eje(r, { x: -200, y: 640 }, { x: GAP.x - 250, y: GAP.y + 24 },
-    (t) => 112 * (1 - t * .48) * (1 + .14 * nI(t * 6)));
+  // Emisora: entra por la izquierda y termina en una punta redondeada con brotes cortos.
+  const troncoI = eje(r, { x: -200, y: 640 }, { x: GAP.x - 92, y: GAP.y + 8 },
+    (t) => 112 * (1 - t * .45) * (1 + .14 * nI(t * 6)) + 30 * Math.exp(-Math.pow((t - .94) / .06, 2)));
   izq.push(troncoI); ramitas(r, troncoI, 6, izq);
-  dedos(r, troncoI[troncoI.length - 1], 1, 5, izq, puntasI);
-  // Receptora: entra por la derecha y también se abre en dedos.
-  const troncoD = eje(r, { x: 1820, y: 260 }, { x: GAP.x + 250, y: GAP.y - 14 },
-    (t) => 128 * (1 - t * .52) * (1 + .14 * nD(t * 6)));
+  puntasI.push(troncoI[troncoI.length - 1]);
+  brotes(r, troncoI, 1, 3, izq, puntasI);
+  // Receptora: igual, desde la derecha.
+  const troncoD = eje(r, { x: 1820, y: 260 }, { x: GAP.x + 92, y: GAP.y - 6 },
+    (t) => 128 * (1 - t * .5) * (1 + .14 * nD(t * 6)) + 28 * Math.exp(-Math.pow((t - .94) / .06, 2)));
   der.push(troncoD); ramitas(r, troncoD, 7, der);
-  dedos(r, troncoD[troncoD.length - 1], -1, 5, der, puntasD);
+  puntasD.push(troncoD[troncoD.length - 1]);
+  brotes(r, troncoD, -1, 2, der, puntasD);
   return { izq, der, troncoI, troncoD, puntasI, puntasD };
 }
 
@@ -177,6 +182,16 @@ function pintarLuz(ctx, ramas, r, brillo = 1) {
       const atenua = Math.min(1, 26 / n);
       ctx.fillStyle = `rgba(${color},${(.05 + .2 * centro * r()) * brillo * (.35 + .65 * atenua)})`;
       ctx.beginPath(); ctx.arc(lerp(a.x, b.x, f) + Math.cos(ang) * d, lerp(a.y, b.y, f) + Math.sin(ang) * d, rad, 0, 6.283); ctx.fill();
+    }
+    // Remate redondeado: en la punta, los granos se reparten en un disco.
+    if (i === pts.length - 1) {
+      const nCap = Math.PI * b.w * b.w * .25 * .7;   // misma densidad que el cuerpo
+      for (let k = 0; k < nCap; k++) {
+        const a2 = r() * 6.283, d2 = Math.abs(gauss(r)) * b.w * .36;
+        const cen = 1 - Math.min(1, d2 / (b.w * .5 + .5));
+        ctx.fillStyle = `rgba(${r() < .5 ? DESTELLO : AURORA},${(.04 + .16 * cen * r()) * brillo * (.35 + .65 * Math.min(1, 26 / (3 + b.w * 3)))})`;
+        ctx.beginPath(); ctx.arc(b.x + Math.cos(a2) * d2, b.y + Math.sin(a2) * d2, .45 + r() * .9, 0, 6.283); ctx.fill();
+      }
     }
     // Granos sueltos: la luz se dispersa alrededor.
     for (let k = 0; k < 2; k++) {
