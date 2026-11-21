@@ -17,6 +17,14 @@ export interface PropsCuenta {
 
 const horizon = new Horizon.Server('https://horizon-testnet.stellar.org')
 
+/** Texto de error con el detalle que devuelve Pollar (el SDK solo pone el código en `message`). */
+function textoError(e: unknown): string {
+  if (!(e instanceof Error)) return String(e)
+  const x = e as Error & { body?: unknown; details?: string }
+  const cuerpo = x.body && typeof x.body === 'object' && Object.keys(x.body).length ? JSON.stringify(x.body) : ''
+  return [x.message, x.details, cuerpo].filter(Boolean).join(' · ')
+}
+
 async function tieneUsdc(g: string, usdc: ConfigPublica['usdc']): Promise<boolean | null> {
   try {
     const cuenta = await horizon.loadAccount(g)
@@ -81,7 +89,7 @@ export function CuentaPollar({ config, onDireccion }: PropsCuenta) {
     try {
       await createWallet()
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(textoError(e))
     } finally {
       setTrabajando(false)
     }
@@ -131,6 +139,10 @@ export function CuentaPollar({ config, onDireccion }: PropsCuenta) {
           {trabajando ? 'Creando…' : 'Crear mi billetera en Stellar'}
         </button>
         {error && <p className="error">{error}</p>}
+        <p className="nota">
+          Diagnóstico: billeteras {JSON.stringify((wallets ?? []).map((w) => [w.chain ?? '?', w.custody, w.provisioning]))},
+          principal {wallet ? `${wallet.chain ?? '?'}/${wallet.provisioning ?? '?'}` : 'ninguna'}
+        </p>
         <button className="enlace" onClick={() => logout()}>
           salir
         </button>
@@ -174,7 +186,7 @@ export function CuentaPollar({ config, onDireccion }: PropsCuenta) {
               await setTrustline({ code: config.usdc.codigo, issuer: config.usdc.emisor })
               setUsdcListo(await tieneUsdc(direccion!, config.usdc))
             } catch (e) {
-              setError(e instanceof Error ? e.message : String(e))
+              setError(textoError(e))
             } finally {
               setTrabajando(false)
             }
