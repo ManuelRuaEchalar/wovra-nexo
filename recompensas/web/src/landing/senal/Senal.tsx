@@ -134,10 +134,10 @@ export default function Senal({ t }: { t: Textos }) {
         <canvas ref={lienzo} />
       </div>
       <button className="senal-flecha anterior" onClick={() => ir(paso - 1)} aria-label={t.senal.anterior}>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+        <svg viewBox="0 0 64 12" aria-hidden="true"><path d="M63 6H1m0 0l5-5M1 6l5 5" /></svg>
       </button>
       <button className="senal-flecha siguiente" onClick={() => ir(paso + 1)} aria-label={t.senal.siguiente}>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+        <svg viewBox="0 0 64 12" aria-hidden="true"><path d="M1 6h62m0 0l-5-5m5 5l-5 5" /></svg>
       </button>
       <div className="senal-texto">
         <p className="eyebrow">{t.senal.eyebrow}</p>

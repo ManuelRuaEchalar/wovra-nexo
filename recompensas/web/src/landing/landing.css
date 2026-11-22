@@ -141,23 +141,30 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 80px; }
 .landing .senal-pasos .apertura h3 { font-size: clamp(28px, 2.6vw, 38px); line-height: 1.2; }
 .landing .senal-pasos p { margin: 0; font-size: 18px; line-height: 1.55; color: #d4dfdb; text-shadow: 0 1px 16px rgba(3, 16, 14, 0.95); }
 
-/* Flechas para ir a la escena anterior o siguiente. */
+/* Flechas para ir a la escena anterior o siguiente: un trazo fino, sin botón visible. */
 .senal-flecha {
-  position: absolute; z-index: 2; top: 50%; margin-top: -26px; width: 52px; height: 52px; border-radius: 50%;
-  display: grid; place-items: center; cursor: pointer; color: var(--tinta-noche);
-  background: rgba(3, 16, 14, 0.45); border: 1px solid rgba(159, 240, 196, 0.22); backdrop-filter: blur(6px);
-  transition: border-color 0.2s, background 0.2s;
+  position: absolute; z-index: 2; top: 0; bottom: 0; width: clamp(64px, 6vw, 96px);
+  display: grid; place-items: center; padding: 0; background: none; border: 0; cursor: pointer;
+  color: rgba(201, 214, 210, 0.38); transition: color 0.3s;
 }
-.senal-flecha:hover { border-color: rgba(159, 240, 196, 0.6); background: rgba(14, 59, 54, 0.6); }
-.senal-flecha svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.senal-flecha.anterior { left: clamp(14px, 1.6vw, 28px); }
-.senal-flecha.siguiente { right: clamp(14px, 1.6vw, 28px); }
+.senal-flecha svg {
+  width: 44px; height: 10px; overflow: visible; fill: none; stroke: currentColor; stroke-width: 1;
+  stroke-linecap: round; stroke-linejoin: round; transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.senal-flecha:hover, .senal-flecha:focus-visible { color: var(--destello); }
+.senal-flecha:focus-visible { outline: none; }
+.senal-flecha:focus-visible svg { filter: drop-shadow(0 0 6px rgba(159, 240, 196, 0.7)); }
+.senal-flecha.anterior { left: 0; }
+.senal-flecha.siguiente { right: 0; }
+.senal-flecha.anterior:hover svg { transform: translateX(-6px); }
+.senal-flecha.siguiente:hover svg { transform: translateX(6px); }
 
 /* En vertical la escena va arriba y el texto abajo. */
 @media (max-aspect-ratio: 11/10) {
   .senal { align-items: flex-end; min-height: 600px; }
   .senal-texto { padding: 0 22px 5vh; }
-  .senal-flecha { top: 30%; width: 44px; height: 44px; margin-top: -22px; }
+  .senal-flecha { bottom: auto; top: 30%; height: 64px; margin-top: -32px; width: 56px; }
+  .senal-flecha svg { width: 32px; }
   .senal-texto > * { max-width: none; }
   .senal-texto::before {
     content: ''; position: absolute; inset: -60px 0 0; z-index: -1;
