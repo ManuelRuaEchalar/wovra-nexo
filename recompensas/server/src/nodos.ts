@@ -42,6 +42,7 @@ const DIA = 24 * 3_600_000;
 const redondear = (n: number) => Math.floor(n * 1e7) / 1e7;
 
 function fondo(): Keypair {
+  if (config.fondoSecreta) return Keypair.fromSecret(config.fondoSecreta);
   const s = claves.obtener("fondo") ?? claves.guardar("fondo", Keypair.random().secret());
   return Keypair.fromSecret(s);
 }
