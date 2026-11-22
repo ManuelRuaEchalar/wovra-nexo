@@ -1,0 +1,7 @@
+app-movil
+**/node_modules
+**/dist
+**/datos
+**/.env
+**/.env.*
+.git

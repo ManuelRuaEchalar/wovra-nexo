@@ -1,26 +1,37 @@
-# Cachés y resultados de compilación
+# Dependencias y resultados de compilación
+node_modules/
+dist/
+build/
 .gradle/
-**/build/
-.idea/
-*.iml
-.DS_Store
-local.properties
+.kotlin/
 .externalNativeBuild/
 .cxx/
+*.apk
+*.aab
+local.properties
+captures/
 
-# Configuración privada y del entorno
+# Datos y secretos (claves de testnet, cuentas): nunca al repositorio
+backend/datos/
 .env
 .env.*
 !.env.example
 *.jks
 *.keystore
+
+# Editores y sistema
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+*.log
+*.tmp
+*.sw?
+
+# Herramientas locales
 .aws/
 .agents/
 .codex/
-
-# Copias del propio repositorio
-respaldos/
-
-# Caché de Python
 __pycache__/
 *.py[cod]
