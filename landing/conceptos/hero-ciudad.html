@@ -90,6 +90,24 @@
   .apps .activa .que { max-height: 80px; }
   .apps button:focus-visible .nombre { color: var(--destello); }
 
+  /* Introducción: el mensaje ocupa el lugar de la lista mientras la red transmite. */
+  .texto { display: grid; }
+  .frase { grid-row: 1; }
+  .intro, .apps { grid-row: 2; grid-column: 1; transition: opacity 0.8s, transform 0.8s; }
+  .intro-titulo { font: 300 clamp(22px, 1.9vw, 30px)/1.25 Sora, sans-serif; letter-spacing: -0.03em; margin: 0 0 14px; color: #f3f8f6; }
+  .intro-texto { font-size: clamp(16px, 1.25vw, 19px); line-height: 1.6; color: var(--texto); margin: 0; max-width: 42ch; }
+  .texto.en-intro .apps, .texto:not(.en-intro) .intro { opacity: 0; transform: translateY(10px); pointer-events: none; }
+
+  /* La red completa: muchos celulares y los avisos pasando en ondas. */
+  .red-densa { transition: opacity 1.2s; }
+  .ciudad:not(.en-intro) .red-densa { opacity: 0; }
+  .punto { fill: var(--destello); opacity: 0.6; transform-box: fill-box; transform-origin: center;
+    animation: destello 4.8s linear infinite; }
+  .tramo { stroke: var(--destello); stroke-width: 2; fill: none; opacity: 0.2; vector-effect: non-scaling-stroke;
+    animation: tramo 4.8s linear infinite; }
+  @keyframes destello { 0% { opacity: 1; transform: scale(2.8); fill: #fff; } 10% { opacity: 0.95; transform: scale(1.5); } 24%, 100% { opacity: 0.6; transform: scale(1); } }
+  @keyframes tramo { 0% { opacity: 1; } 16% { opacity: 0.4; } 32%, 100% { opacity: 0.2; } }
+
   .nota { position: fixed; right: 18px; bottom: 14px; font: 12px Hanken, sans-serif; color: rgba(201, 214, 210, 0.55); }
 
   @media (max-aspect-ratio: 11/10) {
@@ -100,7 +118,7 @@
     .apps .que { font-size: 15px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .mundo { transition: none; } .grano, .pulso, .anillo { animation: none; }
+    .mundo { transition: none; } .grano, .pulso, .anillo, .punto, .tramo { animation: none; }
   }
 </style>
 </head>
@@ -137,6 +155,10 @@
 
 <div class="texto">
   <p class="frase">La misma red cuida tu ciudad.</p>
+  <div class="intro">
+    <p class="intro-titulo">Cada punto es un celular con Dendra.</p>
+    <p class="intro-texto">Cuando uno tiene algo que avisar, el aviso salta de celular en celular, cifrado, por internet, wifi, SMS o Bluetooth, hasta llegar a quien tiene que llegar.</p>
+  </div>
   <ul class="apps" id="apps"></ul>
 </div>
 <p class="nota">Concepto · hero, segunda diapositiva · centro de Sucre</p>
@@ -200,6 +222,67 @@ for (const [k, p] of Object.entries(hay)) {
 for (const p of Object.values(hay)) {
   el('circle', { class: 'nodo-halo', cx: p[0], cy: p[1], r: 9 }, red)
   el('circle', { class: 'nodo', cx: p[0], cy: p[1], r: 3 }, red)
+}
+
+/* --- Introducción: la red completa y los avisos saltando de celular en celular ------ */
+// Un punto cada tercio de cuadra sobre todas las calles; vecinos = puntos seguidos en la misma calle.
+const densa = el('g', { class: 'red-densa' }, capas)
+const puntos = new Map()
+const vecinos = new Map()
+const clave = (i, j) => i.toFixed(3) + ',' + j.toFixed(3)
+function agregar(i, j) {
+  const k = clave(i, j)
+  if (!puntos.has(k)) { const p = P(i, j); if (!dentro(p, 8)) return null; puntos.set(k, p); vecinos.set(k, []) }
+  return k
+}
+function unir(k1, k2) { if (k1 && k2) { vecinos.get(k1).push(k2); vecinos.get(k2).push(k1) } }
+for (let i = 0; i < A.length; i++) for (let j = 0; j < B.length - 1; j++) for (let t = 0; t < 3; t++)
+  unir(agregar(i, j + t / 3), agregar(i, j + (t + 1) / 3))
+for (let j = 0; j < B.length; j++) for (let i = 0; i < A.length - 1; i++) for (let t = 0; t < 3; t++)
+  unir(agregar(i + t / 3, j), agregar(i + (t + 1) / 3, j))
+// Tres avisos que nacen en distintos lugares y se propagan por la red (recorrido en anchura).
+const PASO_S = 0.085, CICLO_S = 4.8
+const retraso = new Map()
+for (const [origen, inicio] of [[clave(1, 4), 0], [clave(7, 1), 1.5], [clave(4, 0), 3.1]]) {
+  if (!puntos.has(origen)) continue
+  const dist = new Map([[origen, 0]]), cola = [origen]
+  while (cola.length) {
+    const k = cola.shift()
+    for (const v of vecinos.get(k)) if (!dist.has(v)) { dist.set(v, dist.get(k) + 1); cola.push(v) }
+  }
+  for (const [k, d] of dist) {
+    const t = (inicio + d * PASO_S) % CICLO_S
+    if (!retraso.has(k)) retraso.set(k, [])
+    retraso.get(k).push(t)
+  }
+}
+const primero = (k) => (retraso.get(k) || [0])[0]
+const hechos = new Set()
+for (const [k, lista] of vecinos) for (const v of lista) {
+  const par = k < v ? k + '|' + v : v + '|' + k
+  if (hechos.has(par)) continue
+  hechos.add(par)
+  const tramo = el('path', { class: 'tramo', d: ruta([puntos.get(k), puntos.get(v)]) }, densa)
+  tramo.style.animationDelay = -(CICLO_S - Math.max(primero(k), primero(v))) + 's'
+}
+// Celulares dentro de las manzanas (gente en su casa): se encienden cuando la onda pasa por la esquina más cercana.
+for (let i = 0; i < A.length - 1; i++) for (let j = 0; j < B.length - 1; j++) for (let n = 0; n < 3; n++) {
+  const fi = i + 0.2 + azar() * 0.6, fj = j + 0.2 + azar() * 0.6
+  const p = P(fi, fj)
+  if (!dentro(p, 8)) continue
+  const k = clave(Math.round(fi * 3) / 3, Math.round(fj) === fj ? fj : Math.round(fj))
+  const cercano = puntos.has(k) ? k : clave(Math.round(fi), Math.round(fj))
+  for (const t of retraso.get(cercano) || [0]) {
+    const c = el('circle', { class: 'punto', cx: p[0], cy: p[1], r: 2.6 }, densa)
+    c.style.animationDelay = -(CICLO_S - t - 0.1) + 's'
+  }
+}
+for (const [k, p] of puntos) {
+  // Cada punto se enciende una vez por cada onda que lo alcanza.
+  for (const t of retraso.get(k) || [0]) {
+    const c = el('circle', { class: 'punto', cx: p[0], cy: p[1], r: 3.4 }, densa)
+    c.style.animationDelay = -(CICLO_S - t) + 's'
+  }
 }
 
 /* --- Anotación de mapa: guía en codo desde el punto, cifra grande y rótulo ------------ */
@@ -388,8 +471,25 @@ const items = apps.map((a, i) => {
   lista.appendChild(li)
   return li
 })
+const texto = document.querySelector('.texto')
+const ciudad = document.querySelector('.ciudad')
+const INTRO_MS = 9000
 let actual = -1, reloj = 0
+/** La ciudad entera con la red transmitiendo; luego empieza por la primera aplicación. */
+function introduccion() {
+  actual = -1
+  texto.classList.add('en-intro')
+  ciudad.classList.add('en-intro')
+  items.forEach((li) => li.classList.remove('activa'))
+  grupos.forEach((g) => g.classList.remove('activa'))
+  encuadrar(P(4, 2.6), 1)
+  clearTimeout(reloj)
+  reloj = setTimeout(() => ir(0), INTRO_MS)
+}
 function ir(i) {
+  if (i >= apps.length) return introduccion()
+  texto.classList.remove('en-intro')
+  ciudad.classList.remove('en-intro')
   actual = (i + apps.length) % apps.length
   items.forEach((li, k) => li.classList.toggle('activa', k === actual))
   grupos.forEach((g, k) => g.classList.toggle('activa', k === actual))
@@ -397,10 +497,9 @@ function ir(i) {
   clearTimeout(reloj)
   reloj = setTimeout(() => ir(actual + 1), DURACION)
 }
-// Entra con la ciudad entera y luego viaja a la primera aplicación.
-encuadrar(P(4, 3), 1)
-setTimeout(() => ir(0), 900)
-addEventListener('resize', () => actual >= 0 && encuadrar(apps[actual].foco, innerWidth / innerHeight < 1.1 ? 2.2 : 1.75))
+introduccion()
+addEventListener('resize', () =>
+  actual >= 0 ? encuadrar(apps[actual].foco, innerWidth / innerHeight < 1.1 ? 2.2 : 1.75) : encuadrar(P(4, 2.6), 1))
 </script>
 </body>
 </html>
