@@ -155,6 +155,14 @@ function P(ia, ib) {
   const a = desplazamiento(A, ia), b = desplazamiento(B, ib)
   return [a * 0.7518 - 0.6361 * b, 0.7716 * b + 0.6593 * a]
 }
+/** Punto a partir de los desplazamientos de las dos calles (sin pasar por índices). */
+function cruce(a, b) { return [a * 0.7518 - 0.6361 * b, 0.7716 * b + 0.6593 * a] }
+/** Manzana entre las calles A[i]–A[i+1] y B[j]–B[j+1], recortada al borde de la vereda. */
+const MEDIA_CALLE = 7
+function manzana(i, j) {
+  const a0 = A[i] + MEDIA_CALLE, a1 = A[i + 1] - MEDIA_CALLE, b0 = B[j] + MEDIA_CALLE, b1 = B[j + 1] - MEDIA_CALLE
+  return [cruce(a0, b0), cruce(a1, b0), cruce(a1, b1), cruce(a0, b1)]
+}
 const W = 1974, H = 797
 const dentro = ([x, y], m = 30) => x > m && x < W - m && y > m && y < H - m
 const svgNS = 'http://www.w3.org/2000/svg'
@@ -211,6 +219,19 @@ function anotacion(padre, [x, y], { cifra, unidad = '', rotulo, lado = 1, alto =
   return g
 }
 
+/** Globo de ubicación con un ícono dentro; la punta cae sobre el punto. */
+const ICONOS = {
+  surtidor: 'M-5 6 H3 M-4 6 V-5.5 H2 V6 M-2.6 -4 H0.6 V-1 H-2.6 Z M2 -0.5 H3.6 V3.6 a1 1 0 0 0 2 0 V-2.2 L3.8 -4.2',
+  casa: 'M-5.5 0.5 L0 -5 L5.5 0.5 M-3.8 -0.8 V5.2 H3.8 V-0.8 M-1.3 5.2 V2 H1.3 V5.2',
+}
+function globo(padre, [x, y], icono, color = 'var(--aurora)') {
+  const g = el('g', { class: 'globo', transform: `translate(${x} ${y})` }, padre)
+  el('ellipse', { cx: 0, cy: 0, rx: 6, ry: 2.2, fill: 'rgba(3,16,14,.55)' }, g)
+  el('path', { d: 'M0 0 C -4 -7 -12 -12 -12 -22 A 12 12 0 1 1 12 -22 C 12 -12 4 -7 0 0 Z', fill: color, stroke: '#fff', 'stroke-width': 1.2, 'vector-effect': 'non-scaling-stroke' }, g)
+  el('path', { d: ICONOS[icono], transform: 'translate(0 -22)', fill: 'none', stroke: '#fff', 'stroke-width': 1.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'fill-rule': 'evenodd', 'vector-effect': 'non-scaling-stroke' }, g)
+  return g
+}
+
 /** Cobertura por operadora: barras como el ícono de señal del celular, una fila por operadora. */
 function cobertura(padre, [x, y], filas) {
   const g = el('g', { class: 'nota-mapa' }, padre)
@@ -235,20 +256,26 @@ const apps = [
     nombre: 'Tu celular, robado o perdido',
     que: 'La red lo ubica por internet, wifi, SMS o Bluetooth. Quien lo devuelve cobra una recompensa en Stellar.',
     disponible: true,
-    foco: P(5, 3.3), dibujar(g) {
+    foco: P(5, 3.1), dibujar(g) {
+      // 1 · Dónde estuvo: su recorrido por las calles (punteado, pasado).
       const cel = P(5, 3.6)
       const rastro = [P(2.3, 4), P(3, 4), P(4, 4), P(5, 4), cel]
-      el('path', { class: 'trazo-punteado', d: ruta(rastro) }, g)
-      for (const p of rastro.slice(0, -1)) el('circle', { cx: p[0], cy: p[1], r: 2.6, fill: 'var(--destello)', opacity: 0.8 }, g)
-      // Celulares cercanos captan su señal y la reenvían.
-      for (const q of [P(6, 3), P(4, 3), P(5.5, 2)]) {
-        const curva = `M${cel[0]} ${cel[1]} Q ${(cel[0] + q[0]) / 2} ${Math.min(cel[1], q[1]) - 40} ${q[0]} ${q[1]}`
-        el('path', { class: 'enlace', d: curva, style: 'opacity:.55' }, g)
-        const pulso = el('path', { class: 'pulso', d: curva }, g)
-        pulso.style.animationDuration = '1.8s'
-        el('circle', { class: 'nodo', cx: q[0], cy: q[1], r: 3.2 }, g)
+      el('path', { class: 'trazo-punteado', d: ruta(rastro), style: 'opacity:.7' }, g)
+      // 2 · Emite por Bluetooth: ondas que alcanzan a un celular cercano.
+      const cercano = P(5, 3)
+      for (const retraso of [0, 0.8, 1.6]) {
+        const onda = el('circle', { class: 'anillo', cx: cel[0], cy: cel[1], r: 56 }, g)
+        onda.style.animationDelay = retraso + 's'
       }
-      el('circle', { class: 'anillo', cx: cel[0], cy: cel[1], r: 18 }, g)
+      // 3 · Ese celular reenvía el aviso por internet hasta ti (luz que viaja por la calle).
+      const tu = P(5, 1.6)
+      el('path', { class: 'enlace', d: ruta([cercano, tu]), style: 'opacity:.7' }, g)
+      const aviso = el('path', { class: 'pulso', d: ruta([cercano, tu]) }, g)
+      aviso.style.animationDuration = '1.6s'
+      el('circle', { class: 'nodo', cx: cercano[0], cy: cercano[1], r: 3.6 }, g)
+      el('circle', { cx: tu[0], cy: tu[1], r: 6, fill: '#f6fbf9', filter: 'url(#brillo)' }, g)
+      const etiquetaTu = el('text', { class: 'rotulo', x: tu[0] + 11, y: tu[1] + 2.5, style: 'paint-order:stroke;stroke:rgba(3,16,14,.78);stroke-width:3px' }, el('g', { class: 'nota-mapa' }, g))
+      etiquetaTu.textContent = 'Tú'
       el('ellipse', { cx: cel[0], cy: cel[1], rx: 15, ry: 6, transform: `rotate(-14 ${cel[0]} ${cel[1]})`, fill: 'none', stroke: 'var(--destello)', 'stroke-width': 1.4, 'vector-effect': 'non-scaling-stroke' }, g)
       el('circle', { class: 'ambar', cx: cel[0], cy: cel[1], r: 5.5 }, g)
       anotacion(g, cel, { cifra: '±25', unidad: 'm', rotulo: 'Tu celular · visto hace 1 min', alto: 30 })
@@ -264,9 +291,8 @@ const apps = [
         const [x, y] = P(5.92 - k * 0.085, 1)
         el('rect', { class: 'auto', x: x - 3.2, y: y - 1.8, width: 6.4, height: 3.6, rx: 1.2, transform: `rotate(41.25 ${x} ${y})` }, g)
       }
-      el('circle', { class: 'anillo', cx: surtidor[0], cy: surtidor[1], r: 16 }, g)
-      el('circle', { class: 'ambar', cx: surtidor[0], cy: surtidor[1], r: 5 }, g)
-      anotacion(g, surtidor, { cifra: '14', unidad: 'autos', rotulo: 'En fila · unos 25 min' })
+      globo(g, surtidor, 'surtidor', '#e08a2e')
+      anotacion(g, [surtidor[0] + 12, surtidor[1] - 22], { cifra: '14', unidad: 'autos', rotulo: 'En fila · unos 25 min', alto: 18 })
     },
   },
   {
@@ -296,14 +322,15 @@ const apps = [
   {
     nombre: 'Los apagones',
     que: 'Dónde se cortó la luz y desde cuándo, avisado por los propios vecinos.',
-    foco: P(6.2, 2.6), dibujar(g) {
-      const zona = [P(5, 2), P(6.5, 2), P(6.5, 3.5), P(5, 3.5)]
-      el('path', { class: 'sin-luz', d: ruta(zona) + ' Z' }, g)
-      for (const [i, j] of [[5.4, 2.4], [6, 2.5], [5.6, 3.1], [6.2, 3.2], [5.2, 2.9]]) {
+    foco: P(6, 2.1), dibujar(g) {
+      // Cinco manzanas sin luz, recortadas al borde de cada vereda.
+      const sinLuz = [[5, 1], [6, 1], [5, 2], [6, 2], [4, 2]]
+      for (const [i, j] of sinLuz) el('path', { class: 'sin-luz', d: ruta(manzana(i, j)) + ' Z' }, g)
+      for (const [i, j] of [[5.4, 1.4], [6.5, 1.6], [5.6, 2.5], [6.4, 2.4], [4.5, 2.6]]) {
         const [x, y] = P(i, j)
         el('circle', { class: 'apagado', cx: x, cy: y, r: 2.4 }, g)
       }
-      anotacion(g, P(6.5, 2.75), { cifra: '19:40', rotulo: 'Sin luz · 32 vecinos avisaron', alto: 24, largo: 18 })
+      anotacion(g, cruce(A[7] - MEDIA_CALLE, (B[2] + B[3]) / 2), { cifra: '19:40', rotulo: 'Sin luz · 32 vecinos avisaron', alto: 24, largo: 18 })
     },
   },
   {
@@ -313,10 +340,8 @@ const apps = [
       const casa = P(2.5, 4.5)
       const camino = [P(0, 5), P(2, 5), P(2, 4.5), casa]
       el('path', { class: 'trazo-punteado', d: ruta(camino) }, g)
-      el('circle', { class: 'anillo', cx: casa[0], cy: casa[1], r: 14 }, g)
-      el('circle', { cx: casa[0], cy: casa[1], r: 6, fill: 'var(--aurora)', filter: 'url(#brillo)' }, g)
-      el('path', { d: `M${casa[0] - 2.6} ${casa[1]} l1.9 2 l3.4 -3.8`, stroke: '#03100e', 'stroke-width': 1.6, fill: 'none', 'stroke-linecap': 'round' }, g)
-      anotacion(g, casa, { cifra: '22:14', rotulo: 'Llegó a casa · tu círculo ya sabe' })
+      globo(g, casa, 'casa', '#1fa866')
+      anotacion(g, [casa[0] + 12, casa[1] - 22], { cifra: '22:14', rotulo: 'Llegó a casa · tu círculo ya sabe', alto: 18 })
     },
   },
   {
