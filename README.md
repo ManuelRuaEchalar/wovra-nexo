@@ -1,5 +1,7 @@
 # Dendra
 
+**En línea:** https://dendra-bo.up.railway.app (Stellar testnet) · `/api/salud` muestra el estado.
+
 Una red de teléfonos que se cuidan entre sí. Si te roban o pierdes el celular, tu
 círculo lo sigue por internet, SMS o Bluetooth, y cualquier teléfono con la app que
 pase cerca reenvía su señal cifrada. Quien devuelve un celular **perdido** cobra una
@@ -43,12 +45,11 @@ cd frontend && npm install && npm run dev
 cd app-movil && ./gradlew installDebug
 ```
 
-En la app, *Ajustes → Recompensa* define la URL del backend.
+La app usa por defecto el backend desplegado (`https://dendra-bo.up.railway.app`); para desarrollo se cambia en *Ajustes → Recompensa*.
 
 ## Despliegue (Railway)
 
-El `Dockerfile` arma un solo servicio con el frontend y la API. `railway.json` fija el
-Dockerfile y el chequeo de salud (`/api/salud`).
+El `Dockerfile` arma un solo servicio con el frontend y la API. Railway lo detecta solo.
 
 1. **New Project → Deploy from GitHub repo** → este repositorio, rama `main`. El Root Directory queda en la raíz.
 2. **Volumen**: clic derecho en el servicio → **Attach Volume**, ruta de montaje `/datos`.
@@ -56,8 +57,9 @@ Dockerfile y el chequeo de salud (`/api/salud`).
 3. **Variables**: `TW_API_KEY` y `POLLAR_CLAVE_PUBLICA`. Opcionales: `PLATAFORMA_SECRETA`
    y `FONDO_SECRETA` (si faltan, se generan en el volumen). No hacen falta `PORT` ni
    `URL_PUBLICA`: la URL se arma con `RAILWAY_PUBLIC_DOMAIN`.
-4. **Settings → Networking → Generate Domain** y comprobar `https://<dominio>/api/salud`.
-5. Agregar el dominio como origen permitido en el panel de Pollar.
+4. **Settings → Networking → Generate Domain** (dejar el puerto que Railway detecta) y comprobar `https://<dominio>/api/salud`.
+5. Al guardar volumen o variables, Railway muestra **Apply changes**: hay que pulsar **Deploy** para aplicarlos.
+6. Agregar el dominio como origen permitido en el panel de Pollar.
 
 ## Equipo
 
