@@ -5,7 +5,7 @@
 
 body.cuerpo-landing { background: #03100e; color: #f4f9f6; }
 /* La barra es fija: los enlaces internos no deben quedar debajo de ella. */
-html:has(body.cuerpo-landing) { scroll-padding-top: 72px; }
+html:has(body.cuerpo-landing) { scroll-padding-top: 80px; }
 .landing-cargando { min-height: 100vh; background: #03100e; }
 
 .landing {
@@ -14,7 +14,7 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 72px; }
   --texto-tenue: #8aa39b;
   --linea-noche: rgba(159, 240, 196, 0.16);
   --superficie-noche: rgba(14, 59, 54, 0.38);
-  --nav-alto: 72px;
+  --nav-alto: 80px;
   color: var(--tinta-noche);
   background:
     radial-gradient(90% 60% at 80% 0%, rgba(43, 208, 126, 0.07), transparent 60%),
@@ -65,11 +65,12 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 72px; }
 .nav-marca { display: inline-flex; align-items: center; gap: 10px; font: 600 20px/1 Hanken, sans-serif; letter-spacing: -0.04em; color: var(--tinta-noche); }
 .nav-marca svg { width: 40px; height: 25px; color: var(--destello); }
 .nav-enlaces { display: flex; align-items: center; gap: 28px; }
-.nav-enlaces ul { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.nav-enlaces ul { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; }
 .nav-enlaces ul a {
-  position: relative; display: block; padding: 8px 12px; border-radius: 999px;
-  font-size: 14px; color: var(--texto-suave); transition: color 0.2s;
+  position: relative; display: block; padding: 12px 16px; border-radius: 999px;
+  font-size: 16.5px; font-weight: 500; color: var(--texto-suave); transition: color 0.2s, background 0.2s;
 }
+.nav-enlaces ul a:hover { background: rgba(159, 240, 196, 0.07); }
 .nav-enlaces ul a:hover { color: var(--tinta-noche); }
 .nav-enlaces ul a[aria-current] { color: var(--tinta-noche); }
 .nav-enlaces ul a[aria-current]::after {
@@ -79,10 +80,10 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 72px; }
 .nav-acciones { display: flex; align-items: center; gap: 12px; }
 .nav-idioma {
   background: none; border: 1px solid var(--linea-noche); color: var(--texto-suave); border-radius: 999px;
-  width: 42px; height: 38px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em;
+  width: 50px; height: 46px; font-size: 14px; font-weight: 600; letter-spacing: 0.08em;
 }
 .nav-idioma:hover { color: var(--tinta-noche); border-color: rgba(159, 240, 196, 0.45); }
-.landing .nav-acciones .btn { padding: 10px 18px; font-size: 14px; }
+.landing .nav-acciones .btn { padding: 13px 26px; font-size: 16.5px; }
 .nav-menu { display: none; }
 
 /* --- Hero ---------------------------------------------------------------------- */
@@ -103,8 +104,9 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 72px; }
   content: ''; position: absolute; left: -10%; bottom: -30%; width: min(900px, 90vw); height: 160%;
   background: radial-gradient(closest-side, rgba(2, 10, 9, 0.72), transparent); pointer-events: none;
 }
-.landing .hero h1 { font: 300 clamp(64px, 9vw, 132px)/0.92 Sora, sans-serif; letter-spacing: -0.06em; margin: 18px 0 0; }
-.landing .hero-lema { font-size: clamp(17px, 1.6vw, 21px); line-height: 1.5; color: #c9d6d2; margin: 22px 0 0; max-width: 46ch; }
+.landing .hero h1 { font: 300 clamp(64px, 9vw, 132px)/0.92 Sora, sans-serif; letter-spacing: -0.06em; margin: 0; }
+.landing .hero-lema { font-size: clamp(18px, 1.7vw, 22px); line-height: 1.45; color: #e3ece9; margin: 22px 0 0; max-width: 44ch; }
+.landing .hero-usos { font-size: clamp(15px, 1.25vw, 17px); line-height: 1.55; color: var(--texto-suave); margin: 14px 0 0; max-width: 52ch; }
 .landing .hero .acciones { margin-top: 32px; gap: 12px; }
 .hero-pausa {
   position: absolute; right: 24px; bottom: 22px; z-index: 2;
@@ -121,13 +123,8 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 72px; }
 .senal-fondo { position: absolute; inset: 0; pointer-events: none; }
 .senal-lienzo {
   position: sticky; top: 0; height: 100vh; height: 100svh;
-  background: radial-gradient(60% 55% at 68% 50%, rgba(14, 59, 54, 0.55), transparent 70%);
 }
 .senal-lienzo canvas { display: block; width: 100%; height: 100%; }
-.senal-grano {
-  position: absolute; inset: 0; opacity: 0.07; mix-blend-mode: overlay; pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
-}
 .senal-pasos { position: relative; z-index: 1; list-style: none; margin-top: 0; margin-bottom: 0; }
 .senal-paso { height: 100vh; height: 100svh; display: flex; align-items: center; }
 .senal-tarjeta {
@@ -223,7 +220,7 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 72px; }
 
 /* --- Pantallas medianas y chicas ----------------------------------------------- */
 @media (max-width: 1080px) {
-  .nav-enlaces ul a { padding: 8px 8px; font-size: 13px; }
+  .nav-enlaces ul a { padding: 10px 10px; font-size: 15px; }
   .nav-enlaces { gap: 14px; }
 }
 
@@ -253,7 +250,6 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 72px; }
   .hero-pausa { right: 14px; bottom: 14px; }
 
   /* En vertical la escena va arriba y las tarjetas abajo. */
-  .senal-lienzo { background: radial-gradient(80% 45% at 50% 32%, rgba(14, 59, 54, 0.55), transparent 70%); }
   .senal-paso { align-items: flex-end; padding-bottom: 6vh; }
   .senal-tarjeta { max-width: none; width: 100%; padding: 22px 22px 24px; background: rgba(3, 16, 14, 0.82); }
 

@@ -12,12 +12,18 @@ const capturas = Object.fromEntries(
   ),
 )
 
-/** Qué captura muestra cada celular en cada uno de los seis pasos (null: sigue la anterior). */
-const pantallas: Pantallas = {
+/**
+ * Qué captura muestra cada celular en cada uno de los seis pasos (null: sigue la anterior).
+ * Una captura que falta a mitad del recorrido no se muestra: el celular sigue con la anterior.
+ */
+const pantallasDeseadas: Pantallas = {
   tuyo: ['inicio', 'guardian', 'perdido', null, null, null],
   nodo: ['nodo', null, null, null, null, null],
   circulo: ['reportar', null, null, null, 'seguimiento', 'recompensa'],
 }
+const pantallas = Object.fromEntries(
+  Object.entries(pantallasDeseadas).map(([rol, lista]) => [rol, lista.map((n, i) => (i > 0 && n && !capturas[n] ? null : n))]),
+) as Pantallas
 
 const nombres: Record<string, string> = {
   inicio: 'Inicio',
@@ -88,7 +94,6 @@ export default function Senal({ t }: { t: Textos }) {
         <div className="senal-fondo" aria-hidden="true">
           <div className="senal-lienzo">
             <canvas ref={lienzo} />
-            <div className="senal-grano" />
           </div>
         </div>
         {sin3d && <p className="wrap nota senal-sin3d">{t.senal.sin3d}</p>}

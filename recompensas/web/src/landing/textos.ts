@@ -9,7 +9,7 @@ const es = {
   meta: {
     titulo: 'Dendra · Una red de celulares que se cuidan entre sí',
     descripcion:
-      'Como las dendritas de una neurona, cada celular recibe la señal del otro. Si pierdes el tuyo, la red lo escucha y una recompensa en Stellar espera a quien lo devuelva.',
+      'Encuentra tu celular robado o perdido: los celulares de la red lo detectan por internet, wifi, SMS o Bluetooth y te avisan dónde está.',
   },
   nav: {
     principal: 'Principal',
@@ -26,9 +26,9 @@ const es = {
     idiomaEtiqueta: 'Ver en inglés',
   },
   hero: {
-    eyebrow: 'Sucre, Bolivia · Red de pruebas en Stellar',
     titulo: 'Dendra',
-    lema: 'Como las dendritas de una neurona, cada celular recibe la señal del otro. Ninguno está solo.',
+    lema: 'Encuentra tu celular robado o perdido. Los celulares de la red lo detectan por internet, wifi, SMS o Bluetooth, y te avisan dónde está.',
+    usos: 'Y la misma red sirve para más: la fila del combustible, el transporte, la señal, los apagones, llegar a casa seguro y cuidar a tus mascotas.',
     principal: 'Ver cómo viaja la señal',
     secundaria: 'Únete',
     pausar: 'Pausar el fondo',
@@ -143,7 +143,7 @@ const en: Textos = {
   meta: {
     titulo: 'Dendra · A network of phones that look after each other',
     descripcion:
-      'Like the dendrites of a neuron, each phone picks up the signal of another. If you lose yours, the network hears it, and a reward on Stellar waits for whoever returns it.',
+      'Find your stolen or lost phone: phones on the network pick it up over the internet, wifi, SMS or Bluetooth and tell you where it is.',
   },
   nav: {
     principal: 'Main',
@@ -160,9 +160,9 @@ const en: Textos = {
     idiomaEtiqueta: 'Ver en español',
   },
   hero: {
-    eyebrow: 'Sucre, Bolivia · Stellar test network',
     titulo: 'Dendra',
-    lema: 'Like the dendrites of a neuron, each phone picks up the signal of another. No one is alone.',
+    lema: 'Find your stolen or lost phone. Phones on the network pick it up over the internet, wifi, SMS or Bluetooth, and tell you where it is.',
+    usos: 'And the same network does more: fuel queues, getting around, signal, blackouts, getting home safely and looking after your pets.',
     principal: 'See how the signal travels',
     secundaria: 'Join',
     pausar: 'Pause the background',

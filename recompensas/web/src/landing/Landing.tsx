@@ -185,9 +185,9 @@ function Hero({ t }: { t: Textos }) {
     <section className="hero" id="arriba">
       <div className="hero-fondo" ref={contenedor} aria-hidden="true" />
       <div className="wrap hero-texto">
-        <p className="eyebrow">{t.hero.eyebrow}</p>
         <h1>{t.hero.titulo}</h1>
         <p className="hero-lema">{t.hero.lema}</p>
+        <p className="hero-usos">{t.hero.usos}</p>
         <div className="acciones">
           <a className="btn btn-luz" href="#senal">
             {t.hero.principal}
