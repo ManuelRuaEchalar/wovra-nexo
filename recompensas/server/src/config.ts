@@ -6,7 +6,10 @@ const env = process.env;
 export const config = {
   puerto: Number(env.PORT ?? 8787),
   /** URL pública del servidor; con ella se arman los enlaces de reclamo. */
-  urlPublica: (env.URL_PUBLICA ?? `http://localhost:${env.PORT ?? 8787}`).replace(/\/$/, ""),
+  urlPublica: (
+    env.URL_PUBLICA ||
+    (env.RAILWAY_PUBLIC_DOMAIN ? `https://${env.RAILWAY_PUBLIC_DOMAIN}` : `http://localhost:${env.PORT ?? 8787}`)
+  ).replace(/\/$/, ""),
 
   /** Trustless Work: API de escrow sobre Stellar (testnet por defecto). */
   twApiUrl: (env.TW_API_URL ?? "https://dev.api.trustlesswork.com").replace(/\/$/, ""),
@@ -19,6 +22,8 @@ export const config = {
 
   /** Clave de la plataforma (G… pública, S… secreta). Si falta, se genera una de testnet. */
   plataformaSecreta: env.PLATAFORMA_SECRETA ?? "",
+  /** Clave secreta S… del fondo que paga a los nodos. Si falta, se genera una de testnet en datos/. */
+  fondoSecreta: env.FONDO_SECRETA ?? "",
 
   /** Clave publicable de Pollar (pub_testnet_…) para la página de reclamo. Es pública por diseño. */
   pollarClavePublica: env.POLLAR_CLAVE_PUBLICA ?? "",

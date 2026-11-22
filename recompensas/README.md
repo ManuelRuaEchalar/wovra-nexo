@@ -32,6 +32,24 @@ npm start                 # http://localhost:8787/api/salud
 - La cuenta de plataforma y las cuentas de los dueños se crean solas en testnet (friendbot), y el USDC de prueba se compra con XLM en el exchange de Stellar. No hace falta ningún faucet.
 - Los datos quedan en `server/datos/`, que no se sube al repo porque contiene claves de testnet.
 
+## Desplegar en Railway
+
+El `Dockerfile` de esta carpeta compila la web y arranca el servidor: un solo
+servicio sirve la landing, `/r/:id`, `/panel` y la API. `railway.json` fija el
+Dockerfile y el chequeo de salud (`/api/salud`).
+
+1. En Railway: **New Project → Deploy from GitHub repo** → este repositorio.
+2. En el servicio, **Settings → Source → Root Directory**: `/recompensas`.
+   Si Railway no toma `railway.json` solo, en **Config-as-code** poner `/recompensas/railway.json`.
+   Rama a desplegar: `develop` (o `main` cuando se publique una versión estable).
+3. **Volumen**: clic derecho en el servicio → **Attach Volume**, ruta de montaje `/datos`.
+   Ahí quedan las recompensas, las cuentas del panel y las claves de testnet; sin volumen se pierden en cada despliegue.
+4. **Variables**: `TW_API_KEY` y `POLLAR_CLAVE_PUBLICA` (obligatorias para la demo).
+   Opcionales: `PLATAFORMA_SECRETA` y `FONDO_SECRETA`; si faltan, se generan en el volumen.
+   No hace falta `PORT` ni `URL_PUBLICA`: Railway da el puerto y la URL se arma con `RAILWAY_PUBLIC_DOMAIN`.
+5. **Settings → Networking → Generate Domain**. Comprobar `https://<dominio>/api/salud`.
+6. Agregar ese dominio como origen permitido en el panel de Pollar.
+
 ## API
 
 | Método | Ruta | Quién | Qué |
