@@ -552,7 +552,7 @@ export function crearEscena(canvas: HTMLCanvasElement, op: OpcionesEscena): Esce
     const dt = Math.min(0.05, (ahora - previo) / 1000)
     previo = ahora
     tiempo += reducido ? dt * 0.3 : dt
-    progreso += (objetivo - progreso) * Math.min(1, dt * 2.6)
+    progreso += (objetivo - progreso) * Math.min(1, dt * 1.4)
     const p = progreso
 
     for (const rol of ['tuyo', 'nodo', 'circulo'] as Rol[]) {

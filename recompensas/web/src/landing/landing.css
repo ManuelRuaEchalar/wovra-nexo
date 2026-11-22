@@ -131,30 +131,14 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 80px; }
 .senal-pasos { display: grid; list-style: none; padding: 0; margin: 36px 0 0; transition: opacity 0.7s; }
 .senal-pasos li {
   grid-area: 1 / 1; opacity: 0; transform: translateY(14px); visibility: hidden;
-  transition: opacity 0.6s, transform 0.6s, visibility 0.6s;
+  transition: opacity 0.9s, transform 0.9s, visibility 0.9s;
 }
-.senal-pasos li.activo { opacity: 1; transform: none; visibility: visible; transition-delay: 0.15s; }
+.senal-pasos li.activo { opacity: 1; transform: none; visibility: visible; transition-delay: 0.3s; }
 .landing .senal-pasos h3 {
   font: 300 clamp(32px, 3.3vw, 48px)/1.05 Sora, sans-serif; letter-spacing: -0.045em; margin: 0 0 16px;
   text-shadow: 0 2px 24px rgba(3, 16, 14, 0.9);
 }
 .landing .senal-pasos p { margin: 0; font-size: 18px; line-height: 1.55; color: #d4dfdb; text-shadow: 0 1px 16px rgba(3, 16, 14, 0.95); }
-.senal-control { display: flex; align-items: center; gap: 18px; margin-top: 34px; }
-.senal-barras { display: flex; gap: 6px; flex: 1; }
-.senal-barras button { flex: 1; padding: 10px 0; background: none; border: 0; cursor: pointer; }
-.senal-barras span { display: block; height: 2px; border-radius: 2px; background: rgba(159, 240, 196, 0.18); overflow: hidden; position: relative; }
-.senal-barras .hecha span { background: rgba(159, 240, 196, 0.55); }
-.senal-barras .activa span::after {
-  content: ''; position: absolute; inset: 0; background: var(--aurora); box-shadow: 0 0 8px rgba(43, 208, 126, 0.8);
-  transform-origin: left; transform: scaleX(1);
-}
-.senal.corriendo .senal-barras .activa span::after { animation: senal-avance var(--duracion) linear both; }
-@keyframes senal-avance { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-.senal-pausa {
-  font: 600 12px Hanken, sans-serif; color: var(--texto-suave); background: none;
-  border: 1px solid rgba(159, 240, 196, 0.2); border-radius: 999px; padding: 7px 14px; cursor: pointer;
-}
-.senal-pausa:hover { color: #fff; border-color: rgba(159, 240, 196, 0.5); }
 
 /* En vertical la escena va arriba y el texto abajo. */
 @media (max-aspect-ratio: 11/10) {
@@ -168,7 +152,6 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 80px; }
   .senal-pasos { margin-top: 14px; }
   .landing .senal-pasos h3 { font-size: 28px; margin-bottom: 10px; }
   .landing .senal-pasos p { font-size: 16px; }
-  .senal-control { margin-top: 18px; }
 }
 
 /* --- Secciones ----------------------------------------------------------------- */
@@ -290,5 +273,4 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 80px; }
 
 @media (prefers-reduced-motion: reduce) {
   .senal-pasos li, .nav, .nav-enlaces { transition: none; }
-  .senal.corriendo .senal-barras .activa span::after { animation: none; }
 }

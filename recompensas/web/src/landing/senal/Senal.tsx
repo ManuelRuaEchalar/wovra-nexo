@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Textos } from '../textos'
 import { crearEscena, type Escena, type Pantallas } from './escena3d'
 
@@ -37,7 +37,7 @@ const nombres: Record<string, string> = {
 }
 
 /** Cuánto se queda la escena en cada paso antes de pasar al siguiente. */
-const DURACION_MS = 6000
+const DURACION_MS = 10000
 
 export default function Senal({ t }: { t: Textos }) {
   const seccion = useRef<HTMLElement>(null)
@@ -45,7 +45,6 @@ export default function Senal({ t }: { t: Textos }) {
   const escena = useRef<Escena | null>(null)
   const [paso, setPaso] = useState(0)
   const [visible, setVisible] = useState(false)
-  const [pausado, setPausado] = useState(false)
   const [reinicio, setReinicio] = useState(false)
   const [sin3d, setSin3d] = useState(false)
   const pendiente = t.senal.pendiente
@@ -74,7 +73,7 @@ export default function Senal({ t }: { t: Textos }) {
 
   // Avance solo: cada paso dura DURACION_MS; del último vuelve al primero con un fundido.
   useEffect(() => {
-    if (!visible || pausado) return
+    if (!visible) return
     let fundido = 0
     const id = setTimeout(() => {
       if (paso < total - 1) {
@@ -92,7 +91,7 @@ export default function Senal({ t }: { t: Textos }) {
       clearTimeout(id)
       clearTimeout(fundido)
     }
-  }, [paso, visible, pausado, total])
+  }, [paso, visible, total])
 
   useEffect(() => {
     escena.current?.fijarProgreso(paso)
@@ -101,10 +100,9 @@ export default function Senal({ t }: { t: Textos }) {
   return (
     <section
       ref={seccion}
-      className={`senal${visible && !pausado ? ' corriendo' : ''}${reinicio ? ' reinicio' : ''}`}
+      className={`senal${reinicio ? ' reinicio' : ''}`}
       id="senal"
       aria-labelledby="senal-titulo"
-      style={{ '--duracion': `${DURACION_MS}ms` } as CSSProperties}
     >
       <div className="senal-lienzo" aria-hidden="true">
         <canvas ref={lienzo} />
@@ -121,24 +119,6 @@ export default function Senal({ t }: { t: Textos }) {
             </li>
           ))}
         </ol>
-        <div className="senal-control">
-          <div className="senal-barras">
-            {t.senal.pasos.map((p, i) => (
-              <button
-                key={i}
-                className={i === paso ? 'activa' : i < paso ? 'hecha' : undefined}
-                aria-label={p.titulo}
-                aria-current={i === paso ? 'step' : undefined}
-                onClick={() => setPaso(i)}
-              >
-                <span />
-              </button>
-            ))}
-          </div>
-          <button className="senal-pausa" onClick={() => setPausado(!pausado)} aria-pressed={pausado}>
-            {pausado ? t.senal.seguir : t.senal.pausar}
-          </button>
-        </div>
       </div>
     </section>
   )
