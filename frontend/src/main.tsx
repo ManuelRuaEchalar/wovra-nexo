@@ -1,0 +1,35 @@
+import { StrictMode, lazy, Suspense } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+
+/*
+ * Un solo sitio, tres rutas. Cada una carga solo lo suyo:
+ *   /         landing (Three.js y los fondos animados)
+ *   /r/:id    página de reclamo de la recompensa (Pollar, Stellar)
+ *   /panel    panel web del dueño (mapa, descifrado en el navegador)
+ */
+const raiz = createRoot(document.getElementById('root')!)
+const ruta = location.pathname
+
+if (ruta === '/' || ruta === '/index.html') {
+  const Landing = lazy(() => import('./paginas/landing/Landing'))
+  raiz.render(
+    <StrictMode>
+      <Suspense fallback={<div className="landing-cargando" />}>
+        <Landing />
+      </Suspense>
+    </StrictMode>,
+  )
+} else if (ruta.startsWith('/panel')) {
+  // El panel no usa Pollar: solo descifra en el navegador y habla con el relevo.
+  import('./paginas/panel/Panel').then(({ default: Panel }) =>
+    raiz.render(
+      <StrictMode>
+        <Panel />
+      </StrictMode>,
+    ),
+  )
+} else {
+  // Cada página pone su título según el idioma.
+  import('./paginas/reclamo').then(({ iniciarReclamo }) => iniciarReclamo(raiz))
+}
