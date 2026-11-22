@@ -83,6 +83,7 @@
   }
   .apps .nombre { font: 300 clamp(20px, 1.7vw, 26px) Sora, sans-serif; letter-spacing: -0.03em; color: rgba(243, 248, 246, 0.38); transition: color 0.4s; }
   .apps .pronto { font: 600 10px Hanken, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--destello); opacity: 0; transition: opacity 0.4s; }
+  .apps .pronto.disponible { color: var(--aurora); }
   .apps .que { grid-column: 1 / -1; font-size: 16px; line-height: 1.5; color: var(--texto); max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.6s, opacity 0.5s; }
   .apps .activa .nombre { color: #f3f8f6; }
   .apps .activa .pronto, .apps .activa .que { opacity: 1; }
@@ -231,6 +232,30 @@ function cobertura(padre, [x, y], filas) {
 /* --- Las seis aplicaciones ------------------------------------------------------------ */
 const apps = [
   {
+    nombre: 'Tu celular, robado o perdido',
+    que: 'La red lo ubica por internet, wifi, SMS o Bluetooth. Quien lo devuelve cobra una recompensa en Stellar.',
+    disponible: true,
+    foco: P(5, 3.3), dibujar(g) {
+      const cel = P(5, 3.6)
+      const rastro = [P(2.3, 4), P(3, 4), P(4, 4), P(5, 4), cel]
+      el('path', { class: 'trazo-punteado', d: ruta(rastro) }, g)
+      for (const p of rastro.slice(0, -1)) el('circle', { cx: p[0], cy: p[1], r: 2.6, fill: 'var(--destello)', opacity: 0.8 }, g)
+      // Celulares cercanos captan su señal y la reenvían.
+      for (const q of [P(6, 3), P(4, 3), P(5.5, 2)]) {
+        const curva = `M${cel[0]} ${cel[1]} Q ${(cel[0] + q[0]) / 2} ${Math.min(cel[1], q[1]) - 40} ${q[0]} ${q[1]}`
+        el('path', { class: 'enlace', d: curva, style: 'opacity:.55' }, g)
+        const pulso = el('path', { class: 'pulso', d: curva }, g)
+        pulso.style.animationDuration = '1.8s'
+        el('circle', { class: 'nodo', cx: q[0], cy: q[1], r: 3.2 }, g)
+      }
+      el('circle', { class: 'anillo', cx: cel[0], cy: cel[1], r: 18 }, g)
+      el('ellipse', { cx: cel[0], cy: cel[1], rx: 15, ry: 6, transform: `rotate(-14 ${cel[0]} ${cel[1]})`, fill: 'none', stroke: 'var(--destello)', 'stroke-width': 1.4, 'vector-effect': 'non-scaling-stroke' }, g)
+      el('circle', { class: 'ambar', cx: cel[0], cy: cel[1], r: 5.5 }, g)
+      anotacion(g, cel, { cifra: '±25', unidad: 'm', rotulo: 'Tu celular · visto hace 1 min', alto: 30 })
+      anotacion(g, cel, { cifra: '50', unidad: 'Bs', rotulo: 'Recompensa garantizada en Stellar', alto: -34 })
+    },
+  },
+  {
     nombre: 'La fila del combustible',
     que: 'Cuántos autos esperan en cada surtidor, antes de salir de casa.',
     foco: P(5.6, 1), dibujar(g) {
@@ -333,7 +358,7 @@ const grupos = apps.map((a) => {
 })
 const items = apps.map((a, i) => {
   const li = document.createElement('li')
-  li.innerHTML = `<button type="button"><span class="nombre">${a.nombre}</span><span class="pronto">Pronto</span><span class="que">${a.que}</span></button>`
+  li.innerHTML = `<button type="button"><span class="nombre">${a.nombre}</span><span class="pronto${a.disponible ? ' disponible' : ''}">${a.disponible ? 'Disponible' : 'Pronto'}</span><span class="que">${a.que}</span></button>`
   li.querySelector('button').addEventListener('click', () => ir(i))
   lista.appendChild(li)
   return li
