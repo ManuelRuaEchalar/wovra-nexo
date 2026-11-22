@@ -19,6 +19,6 @@ COPY backend/package.json backend/package-lock.json ./
 RUN npm ci --omit=dev
 COPY backend/src ./src
 COPY --from=frontend /app/frontend/dist /app/frontend/dist
-# /datos debe ser un volumen persistente: recompensas, cuentas del panel y claves de testnet.
-VOLUME ["/datos"]
+# /datos debe ser un volumen persistente (en Railway: Attach Volume con ruta /datos).
+# Ahí quedan las recompensas, las cuentas del panel y las claves de testnet.
 CMD ["node", "src/index.ts"]
