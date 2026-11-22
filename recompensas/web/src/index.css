@@ -51,12 +51,9 @@ p { max-width: 62ch; }
 .nota { margin: 0; font-size: 14px; color: var(--texto2); }
 .error { margin: 0; color: #b3261e; font-size: 14px; }
 
-/* --- Cabecera --- */
-nav { display: flex; justify-content: space-between; align-items: center; height: 92px; gap: 24px; }
-.marca { display: inline-flex; gap: 10px; align-items: center; font-weight: 600; letter-spacing: -0.04em; font-size: 20px; }
-.marca svg { width: 40px; height: 25px; color: var(--medio); }
-.enlaces { display: flex; align-items: center; gap: 26px; font-size: 14px; }
-.enlaces a:hover { color: var(--medio); }
+/* --- Páginas claras (reclamo, panel) bajo el navbar fijo del sitio --- */
+.pagina-clara > main { padding-top: 80px; }
+html:has(.pagina-clara) { scroll-padding-top: 100px; }
 .chip-prueba {
   background: var(--ambar-suave); color: var(--ambar-texto); border-radius: 30px;
   padding: 6px 12px; font-size: 12px; font-weight: 600;
@@ -242,25 +239,9 @@ code { background: var(--bruma); color: var(--medio); padding: 3px 8px; border-r
 .cierre h2 { max-width: 760px; margin: 18px auto; }
 .cierre p:not(.eyebrow) { margin: 0 auto; color: var(--texto-noche); }
 
-/* --- Pie --- */
-.pie { background: #0a2e2a; color: var(--texto-noche); padding: 64px 0 28px; font-size: 15px; }
-.pie-grid { display: grid; grid-template-columns: 1.4fr 1fr 1.2fr 1.2fr; gap: 40px; }
-.pie .marca { color: var(--fondo); }
-.pie .marca svg { color: var(--aurora); }
-.pie-marca p { margin: 16px 0 0; max-width: 300px; }
-.pie h4 { color: var(--destello); }
-.pie ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.pie li span { display: block; font-size: 13px; color: #8fa9a2; }
-.pie a { color: var(--fondo); }
-.pie a:hover { color: var(--destello); }
-.pie p { margin: 0 0 10px; }
-.pie-final {
-  display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap;
-  margin-top: 52px; padding-top: 22px; border-top: 1px solid #9ff0c422; font-size: 13px; color: #8fa9a2;
-}
-
 /* --- Panel web --- */
 .panel-web { min-height: 70vh; padding-bottom: 80px; }
+.tablero-estado { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
 .entrar-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 64px; align-items: center; padding-top: 40px; }
 .entrar-grid .panel { padding: 36px; }
 .garantias { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 12px; font-size: 15px; color: var(--texto2); }
@@ -325,15 +306,12 @@ code { background: var(--bruma); color: var(--medio); padding: 3px 8px; border-r
   .promesa { padding: 18px 28px; }
   .reclamo { grid-template-columns: 1fr; gap: 28px; }
   .linea-pasos { grid-template-columns: 1fr 1fr; }
-  .pie-grid { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 700px) {
   .mapa, .mapa-vacio, .mapa-caja { height: 380px; min-height: 380px; }
   body { font-size: 16px; }
   .wrap { padding: 0 20px; }
-  nav { height: 76px; }
-  .enlaces a { display: none; }
   .marca { font-size: 18px; }
   .portada-grid { grid-template-columns: 1fr; gap: 0; min-height: 0; padding-top: 12px; padding-bottom: 8px; }
   .bajada { font-size: 17px; }
@@ -355,5 +333,4 @@ code { background: var(--bruma); color: var(--medio); padding: 3px 8px; border-r
   .estado-proyecto { padding: 26px; margin-top: 40px; }
   .cierre { padding: 64px 20px; }
   .orbita-cierre { width: 520px; height: 220px; }
-  .pie-grid { grid-template-columns: 1fr; gap: 32px; }
 }

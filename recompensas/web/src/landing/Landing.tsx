@@ -1,36 +1,29 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { Logo } from '../Logo'
 import { sitio } from '../sitio'
 import { fondoElegido, fondos } from './config'
 import type { Fondo } from './fondos/comun'
 import Senal from './senal/Senal'
-import { textos, type Idioma, type Textos } from './textos'
+import type { Idioma } from '../idioma'
+import { useIdioma } from '../idioma'
+import { Navbar } from '../sitio/Navbar'
+import { Pie } from '../sitio/Pie'
+import { textosSitio } from '../textosSitio'
+import { textos, type Textos } from './textos'
 import { Reloj } from './reloj'
 import './landing.css'
 
 /** La ciudad (foto satelital y red) se carga aparte para no demorar la primera pintura. */
 const Ciudad = lazy(() => import('./ciudad/Ciudad'))
 
-const SECCIONES = ['senal', 'red', 'recompensa', 'privacidad', 'equipo'] as const
-
-function idiomaInicial(): Idioma {
-  const url = new URLSearchParams(location.search).get('lang')
-  if (url === 'es' || url === 'en') return url
-  const guardado = localStorage.getItem('dendra.idioma')
-  if (guardado === 'es' || guardado === 'en') return guardado
-  return navigator.language.toLowerCase().startsWith('es') ? 'es' : 'en'
-}
-
 export default function Landing() {
-  const [idioma, setIdioma] = useState<Idioma>(idiomaInicial)
+  const [idioma, cambiarIdioma] = useIdioma()
   const t = textos[idioma]
+  const ts = textosSitio[idioma]
 
   useEffect(() => {
-    document.documentElement.lang = idioma
     document.title = t.meta.titulo
     document.querySelector('meta[name="description"]')?.setAttribute('content', t.meta.descripcion)
-    localStorage.setItem('dendra.idioma', idioma)
-  }, [idioma, t])
+  }, [t])
 
   useEffect(() => {
     document.body.classList.add('cuerpo-landing')
@@ -39,10 +32,7 @@ export default function Landing() {
 
   return (
     <div className="landing">
-      <a className="saltar" href="#contenido">
-        {idioma === 'es' ? 'Saltar al contenido' : 'Skip to content'}
-      </a>
-      <Navbar t={t} cambiarIdioma={() => setIdioma(idioma === 'es' ? 'en' : 'es')} />
+      <Navbar t={ts.nav} cambiarIdioma={cambiarIdioma} pagina="landing" />
       <main id="contenido">
         <Hero t={t} />
         <Senal t={t} />
@@ -52,95 +42,8 @@ export default function Landing() {
         <Equipo t={t} idioma={idioma} />
         <Unete t={t} />
       </main>
-      <Pie t={t} />
+      <Pie t={ts} enLanding />
     </div>
-  )
-}
-
-// --- Navbar ------------------------------------------------------------------------
-
-function Navbar({ t, cambiarIdioma }: { t: Textos; cambiarIdioma: () => void }) {
-  const [solida, setSolida] = useState(false)
-  const [abierto, setAbierto] = useState(false)
-  const [actual, setActual] = useState<string | null>(null)
-
-  useEffect(() => {
-    const alMover = () => setSolida(scrollY > 40)
-    alMover()
-    addEventListener('scroll', alMover, { passive: true })
-    // La sección activa es la que cruza la franja central de la pantalla.
-    const io = new IntersectionObserver(
-      (entradas) => {
-        for (const e of entradas) if (e.isIntersecting) setActual(e.target.id)
-      },
-      { rootMargin: '-45% 0px -50% 0px' },
-    )
-    for (const id of [...SECCIONES, 'unete']) {
-      const el = document.getElementById(id)
-      if (el) io.observe(el)
-    }
-    const arriba = document.getElementById('arriba')
-    const ioArriba = new IntersectionObserver(([e]) => e.isIntersecting && setActual(null), { rootMargin: '-45% 0px -50% 0px' })
-    if (arriba) ioArriba.observe(arriba)
-    return () => {
-      removeEventListener('scroll', alMover)
-      io.disconnect()
-      ioArriba.disconnect()
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!abierto) return
-    const cerrar = (e: KeyboardEvent) => e.key === 'Escape' && setAbierto(false)
-    addEventListener('keydown', cerrar)
-    return () => removeEventListener('keydown', cerrar)
-  }, [abierto])
-
-  const nombres: Record<(typeof SECCIONES)[number], string> = {
-    senal: t.nav.senal,
-    red: t.nav.red,
-    recompensa: t.nav.recompensa,
-    privacidad: t.nav.privacidad,
-    equipo: t.nav.equipo,
-  }
-
-  return (
-    <header className={`nav${solida || abierto ? ' solida' : ''}${abierto ? ' abierta' : ''}`}>
-      <nav className="nav-barra" aria-label={t.nav.principal}>
-        <a className="nav-marca" href="#arriba" onClick={() => setAbierto(false)}>
-          <Logo /> Dendra
-        </a>
-        <button
-          className="nav-menu"
-          aria-expanded={abierto}
-          aria-controls="nav-enlaces"
-          aria-label={abierto ? t.nav.cerrar : t.nav.menu}
-          onClick={() => setAbierto(!abierto)}
-        >
-          <span />
-          <span />
-        </button>
-        <div className="nav-enlaces" id="nav-enlaces">
-          <ul>
-            {SECCIONES.map((id) => (
-              <li key={id}>
-                <a href={`#${id}`} aria-current={actual === id ? 'location' : undefined} onClick={() => setAbierto(false)}>
-                  {nombres[id]}
-                </a>
-              </li>
-            ))}
-          </ul>
-          <div className="nav-acciones">
-            <button className="nav-idioma" onClick={cambiarIdioma} aria-label={t.nav.idiomaEtiqueta} title={t.nav.idioma}>
-              {t.nav.idiomaCorto}
-            </button>
-            <a className="btn btn-luz" href="#unete" onClick={() => setAbierto(false)}>
-              {t.nav.unete}
-            </a>
-          </div>
-        </div>
-      </nav>
-    </header>
   )
 }
 
@@ -377,16 +280,3 @@ function Unete({ t }: { t: Textos }) {
   )
 }
 
-function Pie({ t }: { t: Textos }) {
-  return (
-    <footer className="pie-landing">
-      <div className="wrap pie-fila">
-        <span className="nav-marca">
-          <Logo /> {t.pie.derechos}
-        </span>
-        <span>{sitio.hackathon}</span>
-        <span className="chip-prueba">{t.pie.prueba}</span>
-      </div>
-    </footer>
-  )
-}

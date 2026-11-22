@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Pie } from '../App'
-import { Logo } from '../Logo'
-import { sitio } from '../sitio'
+import { regional, useIdioma, type Idioma } from '../idioma'
+import { Navbar } from '../sitio/Navbar'
+import { Pie } from '../sitio/Pie'
+import { textosSitio, type TextosSitio } from '../textosSitio'
 import { abrirBloque, derivarContrasena, type Identidad } from './cripto'
 import { Relevo, vacia, type Punto, type Situacion } from './relevo'
 
@@ -11,29 +12,23 @@ import { Relevo, vacia, type Punto, type Situacion } from './relevo'
  * Panel web: el dueño sigue y controla su celular desde cualquier navegador,
  * sin depender de nadie del círculo. Todo se descifra aquí, en el navegador.
  */
+type T = TextosSitio['panel']
+
 export default function Panel() {
   const [yo, setYo] = useState<Identidad | null>(null)
+  const [idioma, cambiarIdioma] = useIdioma()
+  const ts = textosSitio[idioma]
+  useEffect(() => {
+    document.title = ts.titulos.panel
+  }, [ts])
   return (
-    <>
-      <header className="wrap">
-        <nav aria-label="Principal">
-          <a className="marca" href="/panel">
-            <Logo /> {sitio.nombre}
-          </a>
-          <div className="enlaces">
-            <span>Panel web</span>
-            {yo && (
-              <button className="enlace" onClick={() => setYo(null)}>
-                Salir
-              </button>
-            )}
-            <span className="chip-prueba">Prototipo</span>
-          </div>
-        </nav>
-      </header>
-      <main className="panel-web">{yo ? <Tablero yo={yo} /> : <Entrar onEntrar={setYo} />}</main>
-      <Pie r={null} />
-    </>
+    <div className="pagina-clara">
+      <Navbar t={ts.nav} cambiarIdioma={cambiarIdioma} pagina="panel" />
+      <main id="contenido" className="panel-web">
+        {yo ? <Tablero yo={yo} t={ts.panel} idioma={idioma} onSalir={() => setYo(null)} /> : <Entrar onEntrar={setYo} t={ts.panel} />}
+      </main>
+      <Pie t={ts} />
+    </div>
   )
 }
 
@@ -46,7 +41,7 @@ async function pedir<T>(ruta: string, cuerpo?: unknown): Promise<T> {
   return j as T
 }
 
-function Entrar({ onEntrar }: { onEntrar: (yo: Identidad) => void }) {
+function Entrar({ onEntrar, t }: { onEntrar: (yo: Identidad) => void; t: T }) {
   const [correo, setCorreo] = useState('')
   const [contrasena, setContrasena] = useState('')
   const [trabajando, setTrabajando] = useState(false)
@@ -64,7 +59,7 @@ function Entrar({ onEntrar }: { onEntrar: (yo: Identidad) => void }) {
       const { clave, verificador } = await derivarContrasena(contrasena, sal, iteraciones)
       const { bloque } = await pedir<{ bloque: string }>('/api/rescate/entrar', { correo: c, verificador })
       const yo = await abrirBloque(clave, bloque)
-      if (!yo) throw new Error('No se pudo abrir tu cuenta. Vuelve a crearla desde la app.')
+      if (!yo) throw new Error(t.entrar.noAbre)
       setContrasena('')
       onEntrar(yo)
     } catch (err) {
@@ -77,26 +72,23 @@ function Entrar({ onEntrar }: { onEntrar: (yo: Identidad) => void }) {
   return (
     <section className="wrap entrar-grid">
       <div>
-        <p className="eyebrow">Panel web · desde cualquier computadora</p>
-        <h1>¿Dónde está tu celular?</h1>
-        <p className="bajada">
-          Entra con el correo y la contraseña que creaste en la app, en <em>Ajustes → Panel web</em>. Puedes ver su
-          ubicación, reportarlo, hacerlo sonar o terminar la alerta, aunque no tengas a nadie en tu círculo.
-        </p>
+        <p className="eyebrow">{t.entrar.eyebrow}</p>
+        <h1>{t.entrar.titulo}</h1>
+        <p className="bajada">{t.entrar.bajada}</p>
         <ul className="garantias">
-          <li>Tu contraseña no sale de este navegador.</li>
-          <li>Nuestro servidor guarda tu cuenta cifrada y no puede leerla.</li>
-          <li>La ubicación solo existe si el celular está reportado.</li>
+          {t.entrar.garantias.map((g) => (
+            <li key={g}>{g}</li>
+          ))}
         </ul>
       </div>
       <form className="panel pila" onSubmit={enviar}>
-        <h3>Entrar</h3>
+        <h3>{t.entrar.formTitulo}</h3>
         <label>
-          Correo
+          {t.entrar.correo}
           <input type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} required autoComplete="username" />
         </label>
         <label>
-          Contraseña
+          {t.entrar.contrasena}
           <input
             type="password"
             value={contrasena}
@@ -107,10 +99,10 @@ function Entrar({ onEntrar }: { onEntrar: (yo: Identidad) => void }) {
           />
         </label>
         <button className="boton" type="submit" disabled={trabajando}>
-          {trabajando ? 'Abriendo tu cuenta…' : 'Entrar'}
+          {trabajando ? t.entrar.abriendo : t.entrar.boton}
         </button>
         {error && <p className="error">{error}</p>}
-        <p className="nota">¿Aún no tienes cuenta? Créala en la app, en Ajustes → Panel web.</p>
+        <p className="nota">{t.entrar.sinCuenta}</p>
       </form>
     </section>
   )
@@ -118,24 +110,20 @@ function Entrar({ onEntrar }: { onEntrar: (yo: Identidad) => void }) {
 
 // --- Tablero -------------------------------------------------------------------------
 
-const hora = (ms: number) => new Date(ms).toLocaleString('es-BO', { dateStyle: 'short', timeStyle: 'short' })
+const hora = (ms: number, idioma: Idioma) =>
+  new Date(ms).toLocaleString(regional(idioma), { dateStyle: 'short', timeStyle: 'short' })
 
-function hace(ms: number, ahora = Date.now()) {
+function hace(ms: number, t: T, ahora = Date.now()) {
   const s = Math.max(0, Math.round((ahora - ms) / 1000))
-  if (s < 60) return 'hace un momento'
-  if (s < 3600) return `hace ${Math.round(s / 60)} min`
-  if (s < 86400) return `hace ${Math.round(s / 3600)} h`
-  return `hace ${Math.round(s / 86400)} d`
+  if (s < 60) return t.hace.momento
+  if (s < 3600) return t.hace.min(Math.round(s / 60))
+  if (s < 86400) return t.hace.h(Math.round(s / 3600))
+  return t.hace.d(Math.round(s / 86400))
 }
 
-const textoEstado = {
-  ALERTA_ROBO: ['Reportado como robado', 'alerta'],
-  ALERTA_PERDIDA: ['Reportado como perdido', 'alerta'],
-  ARMADO: ['Protegido · sin alerta', 'ok'],
-  INACTIVO: ['Escudo apagado', 'espera'],
-} as const
+const tonoEstado = { ALERTA_ROBO: 'alerta', ALERTA_PERDIDA: 'alerta', ARMADO: 'ok', INACTIVO: 'espera' } as const
 
-function Tablero({ yo }: { yo: Identidad }) {
+function Tablero({ yo, t, idioma, onSalir }: { yo: Identidad; t: T; idioma: Idioma; onSalir: () => void }) {
   const relevo = useMemo(() => new Relevo(yo), [yo])
   const [s, setS] = useState<Situacion>(vacia)
   const [cargado, setCargado] = useState(false)
@@ -182,32 +170,36 @@ function Tablero({ yo }: { yo: Identidad }) {
 
   const enAlerta = s.estado === 'ALERTA_ROBO' || s.estado === 'ALERTA_PERDIDA'
   const ultimo = s.puntos.at(-1)
-  const [titulo, tono] = s.estado ? textoEstado[s.estado] : (['Sin noticias en las últimas 12 horas', 'espera'] as const)
+  const titulo = s.estado ? t.estados[s.estado] : t.estados.sinNoticias
+  const tono = s.estado ? tonoEstado[s.estado] : 'espera'
 
   return (
     <section className="wrap tablero">
       <div className="tablero-cabeza">
         <div>
-          <p className="eyebrow">Tu celular</p>
-          <h2>{yo.nombre ? `El celular de ${yo.nombre}` : 'Tu celular'}</h2>
+          <p className="eyebrow">{t.tuCelular}</p>
+          <h2>{yo.nombre ? t.celularDe(yo.nombre) : t.tuCelular}</h2>
         </div>
-        <p className={`estado-grande ${tono}`}>
-          <i aria-hidden /> {cargado ? titulo : 'Conectando…'}
-        </p>
+        <div className="tablero-estado">
+          <p className={`estado-grande ${tono}`}>
+            <i aria-hidden /> {cargado ? titulo : t.estados.conectando}
+          </p>
+          <button className="enlace" onClick={onSalir}>
+            {t.salir}
+          </button>
+        </div>
       </div>
 
       <div className="tablero-grid">
         <div className="mapa-caja">
           {s.puntos.length > 0 ? (
-            <Mapa puntos={s.puntos} />
+            <Mapa puntos={s.puntos} t={t} idioma={idioma} />
           ) : (
             <div className="mapa-vacio">
               <span className="orbita o1" aria-hidden />
               <span className="orbita o2" aria-hidden />
               <p>
-                {enAlerta
-                  ? 'Esperando la primera ubicación. Llega por internet, por SMS a tu círculo o por cualquier teléfono de la red que pase cerca.'
-                  : 'Tu ubicación no se comparte en el día a día. Aparecerá aquí en cuanto reportes el celular.'}
+                {enAlerta ? t.esperando : t.sinCompartir}
               </p>
             </div>
           )}
@@ -216,31 +208,31 @@ function Tablero({ yo }: { yo: Identidad }) {
         <aside className="tablero-lado">
           <div className="tarjeta-noche recta">
             <span className="horizonte" aria-hidden />
-            <p className="eyebrow">Última ubicación</p>
-            <p className="dato-grande">{ultimo ? hace(ultimo.en) : '—'}</p>
+            <p className="eyebrow">{t.ultima}</p>
+            <p className="dato-grande">{ultimo ? hace(ultimo.en, t) : '—'}</p>
             <dl>
-              <dt>Llegó por</dt>
+              <dt>{t.llegoPor}</dt>
               <dd>
                 {!ultimo
                   ? '—'
                   : ultimo.via === 'bluetooth'
                     ? ultimo.tarde
-                      ? 'Bluetooth · guardado por un teléfono de la red, llegó tarde'
-                      : 'Bluetooth · un teléfono de la red pasó cerca'
-                    : 'Internet'}
+                      ? t.viaBluetoothTarde
+                      : t.viaBluetooth
+                    : t.viaInternet}
               </dd>
-              <dt>Puntos de la ruta</dt>
+              <dt>{t.puntos}</dt>
               <dd>{s.puntos.length}</dd>
               {s.bateria !== null && (
                 <>
-                  <dt>Batería</dt>
+                  <dt>{t.bateria}</dt>
                   <dd>{s.bateria} %</dd>
                 </>
               )}
               {s.desde && enAlerta && (
                 <>
-                  <dt>En alerta desde</dt>
-                  <dd>{hora(s.desde)}</dd>
+                  <dt>{t.enAlertaDesde}</dt>
+                  <dd>{hora(s.desde, idioma)}</dd>
                 </>
               )}
             </dl>
@@ -251,27 +243,27 @@ function Tablero({ yo }: { yo: Identidad }) {
                 target="_blank"
                 rel="noreferrer"
               >
-                Abrir en Google Maps ↗
+                {t.abrirMaps}
               </a>
             )}
           </div>
 
           {s.encontradoEn && enAlerta && (
-            <p className="aviso-encontrado">Alguien avisó que lo encontró ({hace(s.encontradoEn)}).</p>
+            <p className="aviso-encontrado">{t.encontrado(hace(s.encontradoEn, t))}</p>
           )}
 
           <div className="ordenes">
             {enAlerta ? (
               <>
-                <button className="boton" disabled={enviando} onClick={() => ordenar('RING', 'Orden enviada: sonará a todo volumen 40 s.')}>
-                  Hacer sonar
+                <button className="boton" disabled={enviando} onClick={() => ordenar('RING', t.sonarEnviado)}>
+                  {t.sonar}
                 </button>
                 <button
                   className="boton secundario"
                   disabled={enviando}
-                  onClick={() => confirm('¿Ya tienes tu celular de vuelta?') && ordenar('OK', 'Listo: la alerta terminará en cuanto el celular reciba la orden.')}
+                  onClick={() => confirm(t.recuperadoPregunta) && ordenar('OK', t.recuperadoEnviado)}
                 >
-                  Ya lo recuperé
+                  {t.recuperado}
                 </button>
               </>
             ) : (
@@ -279,41 +271,39 @@ function Tablero({ yo }: { yo: Identidad }) {
                 <button
                   className="boton alerta"
                   disabled={enviando}
-                  onClick={() => confirm('¿Reportar tu celular como robado?') && ordenar('ROBO', 'Reporte enviado. En cuanto lo reciba, empezará a mandar su ubicación.')}
+                  onClick={() => confirm(t.roboPregunta) && ordenar('ROBO', t.roboEnviado)}
                 >
-                  Me lo robaron
+                  {t.robo}
                 </button>
                 <button
                   className="boton secundario"
                   disabled={enviando}
-                  onClick={() => ordenar('PERD', 'Reporte enviado. Mostrará "Este celular está perdido" y, si la configuraste, tu recompensa.')}
+                  onClick={() => ordenar('PERD', t.perdiEnviado)}
                 >
-                  Lo perdí
+                  {t.perdi}
                 </button>
-                <button className="enlace" disabled={enviando} onClick={() => ordenar('RING', 'Orden enviada: sonará a todo volumen 40 s.')}>
-                  Hacerlo sonar
+                <button className="enlace" disabled={enviando} onClick={() => ordenar('RING', t.sonarEnviado)}>
+                  {t.sonarEnlace}
                 </button>
               </>
             )}
             {aviso && <p className="nota">{aviso}</p>}
             {error && <p className="error">{error}</p>}
-            <p className="nota">
-              Las órdenes llegan en cuanto el celular tiene internet. Se actualiza solo cada 10 segundos.
-            </p>
+            <p className="nota">{t.llegan}</p>
           </div>
         </aside>
       </div>
 
       {s.eventos.length > 0 && (
         <div className="registro">
-          <h3>Registro</h3>
+          <h3>{t.registro}</h3>
           <ol>
             {s.eventos
               .slice(-12)
               .reverse()
               .map((e) => (
                 <li key={`${e.en}-${e.titulo}`} className={e.alerta ? 'alerta' : ''}>
-                  <span>{hora(e.en)}</span>
+                  <span>{hora(e.en, idioma)}</span>
                   <strong>{e.titulo}</strong>
                   <em>{e.detalle}</em>
                 </li>
@@ -327,7 +317,7 @@ function Tablero({ yo }: { yo: Identidad }) {
 
 // --- Mapa ----------------------------------------------------------------------------
 
-function Mapa({ puntos }: { puntos: Punto[] }) {
+function Mapa({ puntos, t, idioma }: { puntos: Punto[]; t: T; idioma: Idioma }) {
   const caja = useRef<HTMLDivElement>(null)
   const mapa = useRef<L.Map | null>(null)
   const capa = useRef<L.LayerGroup | null>(null)
@@ -364,19 +354,19 @@ function Mapa({ puntos }: { puntos: Punto[] }) {
         fillOpacity: 1,
         dashArray: p.via === 'bluetooth' ? '2 2' : undefined,
       })
-        .bindTooltip(`${hora(p.en)} · ${p.via === 'bluetooth' ? 'Bluetooth' : 'Internet'}`)
+        .bindTooltip(`${hora(p.en, idioma)} · ${p.via === 'bluetooth' ? 'Bluetooth' : t.viaInternet}`)
         .addTo(g),
     )
     const u = puntos.at(-1)!
     L.circle([u.lat, u.lng], { radius: Math.max(u.precision, 15), color: '#2bd07e', weight: 1, fillOpacity: 0.12 }).addTo(g)
     L.circleMarker([u.lat, u.lng], { radius: 9, color: '#0e3b36', weight: 3, fillColor: '#2bd07e', fillOpacity: 1 })
-      .bindTooltip(`Última: ${hora(u.en)}`, { permanent: false })
+      .bindTooltip(`${t.ultimaTooltip}: ${hora(u.en, idioma)}`, { permanent: false })
       .addTo(g)
     if (!encuadrado.current) {
       m.fitBounds(L.latLngBounds(linea).pad(0.3), { maxZoom: 17 })
       encuadrado.current = true
     }
-  }, [puntos])
+  }, [puntos, t, idioma])
 
   return <div ref={caja} className="mapa" />
 }

@@ -13,20 +13,6 @@ const es = {
     descripcion:
       'Encuentra tu celular robado o perdido: los celulares de la red lo detectan por internet, wifi, SMS o Bluetooth y te avisan dónde está.',
   },
-  nav: {
-    principal: 'Principal',
-    senal: 'La señal',
-    red: 'La red',
-    recompensa: 'Recompensa',
-    privacidad: 'Privacidad',
-    equipo: 'Equipo',
-    unete: 'Únete',
-    menu: 'Menú',
-    cerrar: 'Cerrar menú',
-    idioma: 'English',
-    idiomaCorto: 'EN',
-    idiomaEtiqueta: 'Ver en inglés',
-  },
   hero: {
     titulo: 'Dendra',
     frase: 'Lo que pierdes, la red lo encuentra.',
@@ -174,10 +160,6 @@ const es = {
     bajada: 'Estamos preparando las primeras pruebas en Sucre. Escríbenos si quieres llevar Dendra en tu celular o sumar a tu organización.',
     accion: 'Escríbenos',
   },
-  pie: {
-    derechos: 'Dendra · Sucre, Bolivia',
-    prueba: 'Red de pruebas de Stellar',
-  },
 }
 
 export type Textos = typeof es
@@ -187,20 +169,6 @@ const en: Textos = {
     titulo: 'Dendra · A network of phones that look after each other',
     descripcion:
       'Find your stolen or lost phone: phones on the network pick it up over the internet, wifi, SMS or Bluetooth and tell you where it is.',
-  },
-  nav: {
-    principal: 'Main',
-    senal: 'The signal',
-    red: 'The network',
-    recompensa: 'Reward',
-    privacidad: 'Privacy',
-    equipo: 'Team',
-    unete: 'Join',
-    menu: 'Menu',
-    cerrar: 'Close menu',
-    idioma: 'Español',
-    idiomaCorto: 'ES',
-    idiomaEtiqueta: 'Ver en español',
   },
   hero: {
     titulo: 'Dendra',
@@ -347,10 +315,6 @@ const en: Textos = {
     titulo: 'The network grows with every phone.',
     bajada: 'We are preparing the first trials in Sucre. Write to us if you want Dendra on your phone or want to bring in your organization.',
     accion: 'Write to us',
-  },
-  pie: {
-    derechos: 'Dendra · Sucre, Bolivia',
-    prueba: 'Stellar test network',
   },
 }
 
