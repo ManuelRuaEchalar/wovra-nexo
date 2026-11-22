@@ -35,7 +35,6 @@ const es = {
     seguir: 'Reanudar el fondo',
   },
   senal: {
-    eyebrow: 'La señal',
     titulo: 'Así viaja la señal',
     pasos: [
       {
@@ -182,7 +181,6 @@ const en: Textos = {
     seguir: 'Resume the background',
   },
   senal: {
-    eyebrow: 'The signal',
     titulo: 'How the signal travels',
     pasos: [
       {

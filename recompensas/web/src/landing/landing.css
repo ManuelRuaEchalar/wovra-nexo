@@ -126,9 +126,8 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 80px; }
 /* Texto al aire libre sobre la escena, sin tarjetas. */
 .senal-texto { position: relative; z-index: 1; width: 100%; padding: var(--nav-alto) 0 0 clamp(80px, 6.5vw, 112px); }
 .senal-texto > * { max-width: 420px; }
-.landing .senal-texto h2 { font-size: clamp(20px, 1.7vw, 24px); color: var(--texto-suave); margin: 10px 0 0; font-weight: 400; }
 /* Todos los pasos ocupan el mismo lugar; solo se ve el actual. */
-.senal-pasos { display: grid; list-style: none; padding: 0; margin: 36px 0 0; transition: opacity 0.7s; }
+.senal-pasos { display: grid; list-style: none; padding: 0; margin: 0; transition: opacity 0.7s; }
 .senal-pasos li {
   grid-area: 1 / 1; opacity: 0; transform: translateY(14px); visibility: hidden;
   transition: opacity 0.9s, transform 0.9s, visibility 0.9s;
@@ -173,7 +172,6 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 80px; }
     content: ''; position: absolute; inset: -60px 0 0; z-index: -1;
     background: linear-gradient(transparent, rgba(3, 16, 14, 0.85) 30%);
   }
-  .senal-pasos { margin-top: 14px; }
   .landing .senal-pasos h3 { font-size: 28px; margin-bottom: 10px; }
   .landing .senal-pasos .apertura h3 { font-size: 24px; }
   .landing .senal-pasos p { font-size: 15px; }

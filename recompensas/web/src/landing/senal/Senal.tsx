@@ -156,7 +156,7 @@ export default function Senal({ t }: { t: Textos }) {
       ref={seccion}
       className={`senal${reinicio ? ' reinicio' : ''}`}
       id="senal"
-      aria-labelledby="senal-titulo"
+      aria-label={t.senal.titulo}
     >
       <div className="senal-lienzo" aria-hidden="true">
         <canvas ref={lienzo} />
@@ -168,8 +168,6 @@ export default function Senal({ t }: { t: Textos }) {
         <Flecha />
       </button>
       <div className="senal-texto">
-        <p className="eyebrow">{t.senal.eyebrow}</p>
-        <h2 id="senal-titulo">{t.senal.titulo}</h2>
         {sin3d && <p className="nota">{t.senal.sin3d}</p>}
         <ol className="senal-pasos">
           {t.senal.pasos.map((p, i) => (
