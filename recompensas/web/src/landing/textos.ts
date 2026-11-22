@@ -1,3 +1,5 @@
+import type { TextosMapa } from './ciudad/escena'
+
 /**
  * Textos del landing en español e inglés. Las dos versiones tienen la misma forma:
  * el tipo `Textos` sale del español y el inglés debe cumplirlo.
@@ -35,6 +37,33 @@ const es = {
     secundaria: 'Únete',
     pausar: 'Pausar el fondo',
     seguir: 'Reanudar el fondo',
+  },
+  ciudad: {
+    frase: 'La misma red cuida tu ciudad.',
+    intro: 'Cada celular es un punto de la red.',
+    disponible: 'Disponible',
+    pronto: 'Pronto',
+    apps: [
+      { nombre: 'Tu celular, robado o perdido', que: 'La red lo ubica por internet, wifi, SMS o Bluetooth. Quien lo devuelve cobra una recompensa en Stellar.' },
+      { nombre: 'La fila del combustible', que: 'Cuántos autos esperan en cada surtidor, antes de salir de casa.' },
+      { nombre: 'Tu micro', que: 'Dónde viene y qué tan lleno, medido por los celulares que van en él.' },
+      { nombre: 'La señal', que: 'Qué operadora funciona mejor en cada cuadra, con datos de la gente.' },
+      { nombre: 'Los apagones', que: 'Dónde se cortó la luz y desde cuándo, avisado por los propios vecinos.' },
+      { nombre: 'Llegar a casa', que: 'Tu gente sabe que llegaste bien, sin que tengas que escribir.' },
+      { nombre: 'Tu mascota', que: 'Un llavero en su collar y toda la red ayuda a encontrarla.' },
+    ],
+    mapa: {
+      tu: 'Tú',
+      celular: [
+        { cifra: '±25', unidad: 'm', rotulo: 'Tu celular · visto hace 1 min' },
+        { cifra: '50', unidad: 'Bs', rotulo: 'Recompensa garantizada en Stellar' },
+      ],
+      combustible: { cifra: '14', unidad: 'autos', rotulo: 'En fila · unos 25 min' },
+      micro: { cifra: '4', unidad: 'min', rotulo: 'Línea A · va por la mitad' },
+      apagon: { cifra: '19:40', rotulo: 'Sin luz · 32 vecinos avisaron' },
+      casa: { cifra: '22:14', rotulo: 'Llegó a casa · tu círculo ya sabe' },
+      mascota: { cifra: '2', unidad: 'min', rotulo: 'Huellita · la vio un celular cerca' },
+    } as TextosMapa,
   },
   senal: {
     titulo: 'Así viaja la señal',
@@ -182,6 +211,33 @@ const en: Textos = {
     secundaria: 'Join',
     pausar: 'Pause the background',
     seguir: 'Resume the background',
+  },
+  ciudad: {
+    frase: 'The same network looks after your city.',
+    intro: 'Every phone is a point in the network.',
+    disponible: 'Available',
+    pronto: 'Soon',
+    apps: [
+      { nombre: 'Your phone, stolen or lost', que: 'The network locates it over the internet, wifi, SMS or Bluetooth. Whoever returns it earns a reward on Stellar.' },
+      { nombre: 'Fuel queues', que: 'How many cars are waiting at each station, before you leave home.' },
+      { nombre: 'Your bus', que: 'Where it is and how full, measured by the phones riding it.' },
+      { nombre: 'Signal', que: 'Which carrier works best on each block, with data from people.' },
+      { nombre: 'Blackouts', que: 'Where the power went out and since when, reported by the neighbours themselves.' },
+      { nombre: 'Getting home', que: 'Your people know you got home safe, without you having to text.' },
+      { nombre: 'Your pet', que: 'A tag on its collar and the whole network helps find it.' },
+    ],
+    mapa: {
+      tu: 'You',
+      celular: [
+        { cifra: '±25', unidad: 'm', rotulo: 'Your phone · seen 1 min ago' },
+        { cifra: '50', unidad: 'Bs', rotulo: 'Reward guaranteed on Stellar' },
+      ],
+      combustible: { cifra: '14', unidad: 'cars', rotulo: 'In line · about 25 min' },
+      micro: { cifra: '4', unidad: 'min', rotulo: 'Line A · halfway there' },
+      apagon: { cifra: '19:40', rotulo: 'No power · 32 neighbours reported' },
+      casa: { cifra: '22:14', rotulo: 'Got home · your circle knows' },
+      mascota: { cifra: '2', unidad: 'min', rotulo: 'Huellita · spotted by a nearby phone' },
+    } as TextosMapa,
   },
   senal: {
     titulo: 'How the signal travels',

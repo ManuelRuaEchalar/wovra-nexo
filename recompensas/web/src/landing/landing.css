@@ -125,6 +125,116 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 80px; }
 }
 .hero-pausa:hover { color: #fff; border-color: rgba(159, 240, 196, 0.5); }
 
+/* --- Hero que se transforma: dendritas ↔ ciudad ------------------------------------ */
+.hero-ciudad { position: absolute; inset: 0; z-index: 0; opacity: 0; transition: opacity 1.6s ease-in-out; pointer-events: none; }
+.hero[data-fase='a-ciudad'] .hero-ciudad, .hero[data-fase='ciudad'] .hero-ciudad { opacity: 1; }
+.hero-texto { transition: opacity 1.1s ease-in-out; }
+.hero[data-fase='a-ciudad'] .hero-texto, .hero[data-fase='ciudad'] .hero-texto { opacity: 0; }
+
+/* La ciudad: foto satelital con su color y granulado suave; la red y las aplicaciones encima. */
+.cdd, .cdd-lienzo, .cdd-escena { position: absolute; inset: 0; overflow: hidden; }
+.cdd-defs { position: absolute; }
+.cdd-mundo {
+  position: absolute; left: 0; top: 0; width: 1974px; height: 797px; transform-origin: 0 0;
+  transition: transform 2.6s cubic-bezier(0.45, 0, 0.15, 1);
+}
+.cdd-mundo.saliendo { transition: transform 4.6s cubic-bezier(0.65, 0, 0.3, 1); }
+.cdd-mundo img { position: absolute; inset: 0; width: 100%; height: 100%; filter: url(#cdd-granulado) saturate(1.08) contrast(1.06) brightness(0.8); }
+/* Bordes superior e inferior fundidos: en vertical la cámara puede pasarlos. */
+.cdd-escena.vertical .cdd-mundo img { -webkit-mask-image: linear-gradient(transparent, #000 7%, #000 93%, transparent); mask-image: linear-gradient(transparent, #000 7%, #000 93%, transparent); }
+.cdd-mundo svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.cdd-velo { position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(3, 16, 14, 0.72) 0, rgba(3, 16, 14, 0) 140px),
+    linear-gradient(90deg, rgba(3, 16, 14, 0.9) 0%, rgba(3, 16, 14, 0.62) 32%, rgba(3, 16, 14, 0) 60%),
+    radial-gradient(120% 90% at 70% 50%, transparent 40%, rgba(3, 16, 14, 0.75) 100%); }
+
+.cdd-enlace { stroke: var(--destello); stroke-width: 1.6; fill: none; opacity: 0.42; vector-effect: non-scaling-stroke; }
+.cdd-pulso { stroke: var(--destello); stroke-width: 2; fill: none; stroke-linecap: round; vector-effect: non-scaling-stroke;
+  stroke-dasharray: 2 130; animation: cdd-pulso 3.2s linear infinite; opacity: 0.85; filter: url(#cdd-brillo); }
+@keyframes cdd-pulso { to { stroke-dashoffset: -132; } }
+.cdd-nodo { fill: var(--destello); filter: url(#cdd-brillo); }
+.cdd-nodo-halo { fill: var(--aurora); opacity: 0.38; }
+
+/* Introducción: muchos celulares; el aviso viaja como estela y el halo florece al recibir. */
+.cdd-red-densa { opacity: 0; transition: opacity 2.8s ease-in-out; }
+.cdd-escena.en-intro .cdd-red-densa { opacity: 1; transition-duration: 1.2s; }
+.cdd-punto { fill: url(#cdd-luz); opacity: 0.22; transform-box: fill-box; transform-origin: center; animation: cdd-recibe 7.5s ease-out infinite; }
+@keyframes cdd-recibe { 0% { opacity: 1; transform: scale(1.7); } 18% { opacity: 0.7; transform: scale(1.15); } 40%, 100% { opacity: 0.22; transform: scale(1); } }
+.cdd-tramo { stroke: url(#cdd-estela); stroke-width: 2.2; fill: none; stroke-linecap: round; vector-effect: non-scaling-stroke;
+  stroke-dasharray: 0.55 2; stroke-dashoffset: 0.55; opacity: 0; animation: cdd-viaja 7.5s linear infinite; }
+@keyframes cdd-viaja { 0% { stroke-dashoffset: 0.55; opacity: 1; } 7% { stroke-dashoffset: -1; opacity: 1; } 7.1%, 100% { stroke-dashoffset: -1; opacity: 0; } }
+.cdd-estelas { filter: url(#cdd-brillo); }
+
+/* Superposiciones por aplicación. */
+.cdd-app { opacity: 0; transition: opacity 0.9s; }
+.cdd-app.activa { opacity: 1; transition-delay: 1.2s; }
+.cdd-app.activa.tras-intro { transition: opacity 1.4s; transition-delay: 3.6s; }
+.cdd-nota text { paint-order: stroke; stroke: rgba(3, 16, 14, 0.78); stroke-linejoin: round; }
+.cdd-cifra { font: 300 30px Sora, sans-serif; letter-spacing: -0.04em; fill: #f6fbf9; stroke-width: 5px; }
+.cdd-unidad { font: 300 15px Sora, sans-serif; fill: var(--destello); stroke-width: 4px; }
+.cdd-rotulo { font: 600 7px Hanken, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; fill: #e2ece8; stroke-width: 3px; }
+.cdd-rotulo-grande { font-size: 10px; stroke-width: 3.5px; }
+.cdd-guia { fill: none; stroke: rgba(243, 248, 246, 0.75); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.cdd-remate { fill: #f6fbf9; }
+.cdd-barra-on { fill: var(--destello); filter: url(#cdd-brillo); }
+.cdd-barra-off { fill: rgba(243, 248, 246, 0.22); }
+.cdd-trazo { fill: none; stroke: var(--destello); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; filter: url(#cdd-brillo); }
+.cdd-punteado { fill: none; stroke: var(--destello); stroke-width: 2; stroke-dasharray: 1 7; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.cdd-ambar { fill: #f0a65a; stroke: #fff; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.cdd-orbita { fill: none; stroke: var(--destello); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+.cdd-tu { fill: #f6fbf9; filter: url(#cdd-brillo); }
+.cdd-micro { fill: #f3f8f6; filter: url(#cdd-brillo); }
+.cdd-huella { fill: #f0a65a; filter: url(#cdd-brillo); }
+.cdd-parada { fill: #03100e; stroke: var(--destello); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.cdd-auto { fill: #e9f3ef; opacity: 0.9; }
+.cdd-globo { stroke: #fff; stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.cdd-icono { fill: none; stroke: #fff; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.cdd-anillo { fill: none; stroke: var(--destello); stroke-width: 1.5; vector-effect: non-scaling-stroke; animation: cdd-anillo 2.4s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes cdd-anillo { from { transform: scale(0.3); opacity: 0.9; } to { transform: scale(1.6); opacity: 0; } }
+.cdd-celda { fill: var(--aurora); stroke: var(--destello); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.cdd-sin-luz { fill: rgba(0, 0, 0, 0.74); stroke: #f0a65a; stroke-width: 1.4; stroke-dasharray: 6 5; vector-effect: non-scaling-stroke; }
+.cdd-apagado { fill: #6b7a76; }
+.cdd-escena.pausada * { animation-play-state: paused !important; }
+/* En pantallas verticales las anotaciones se achican para caber junto al punto. */
+.cdd-escena.vertical .cdd-nota { transform: scale(0.6); }
+
+/* Texto de la ciudad: entra cuando termina el fundido. */
+.cdd-texto {
+  position: absolute; left: clamp(24px, 6.5vw, 112px); top: 50%; transform: translateY(-46%); width: min(500px, 40vw);
+  display: grid; opacity: 0; transition: opacity 0.9s;
+}
+.cdd.activa .cdd-texto { opacity: 1; }
+.landing .cdd-frase { grid-row: 1; font: 300 clamp(40px, 4.6vw, 72px)/1.02 Sora, sans-serif; letter-spacing: -0.05em; margin: 0 0 40px; text-wrap: balance; color: #f3f8f6; }
+.cdd-intro, .cdd-apps { grid-row: 2; grid-column: 1; transition: opacity 0.8s, transform 0.8s; }
+.landing .cdd-intro { font: 300 clamp(22px, 1.9vw, 30px)/1.25 Sora, sans-serif; letter-spacing: -0.03em; margin: 0; color: #f3f8f6; }
+.cdd-intro.saliendo, .cdd-texto:not(.en-intro) .cdd-intro, .cdd-texto.en-intro .cdd-apps { opacity: 0; transform: translateY(10px); }
+.cdd-apps { list-style: none; margin: 0; padding: 0; border-top: 1px solid rgba(159, 240, 196, 0.14); }
+.cdd-apps li {
+  border-bottom: 1px solid rgba(159, 240, 196, 0.14); padding: 14px 0;
+  display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 4px 12px;
+}
+.cdd-apps .nombre { font: 300 clamp(20px, 1.7vw, 26px) Sora, sans-serif; letter-spacing: -0.03em; color: rgba(243, 248, 246, 0.38); transition: color 0.4s; }
+.cdd-apps .estado { font: 600 10px Hanken, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--destello); opacity: 0; transition: opacity 0.4s; }
+.cdd-apps .estado.disponible { color: var(--aurora); }
+.cdd-apps .que { grid-column: 1 / -1; font-size: 16px; line-height: 1.5; color: var(--texto-suave); max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.6s, opacity 0.5s; }
+.cdd-apps .activa .nombre { color: #f3f8f6; }
+.cdd-apps .activa .estado, .cdd-apps .activa .que { opacity: 1; }
+.cdd-apps .activa .que { max-height: 80px; }
+
+@media (max-aspect-ratio: 11/10) {
+  .cdd-velo { background: linear-gradient(180deg, rgba(3, 16, 14, 0.72) 0, rgba(3, 16, 14, 0) 120px), linear-gradient(0deg, rgba(3, 16, 14, 0.95) 0%, rgba(3, 16, 14, 0.75) 42%, rgba(3, 16, 14, 0.05) 70%); }
+  .cdd-texto { top: auto; bottom: 6vh; transform: none; width: auto; right: 22px; left: 22px; }
+  .landing .cdd-frase { font-size: 32px; margin-bottom: 16px; }
+  .cdd-texto { bottom: 9vh; }
+  /* En vertical solo se ve la aplicación activa: el mapa necesita el espacio. */
+  .cdd-apps { border-top: 0; }
+  .cdd-apps li { display: none; padding: 0; border: 0; }
+  .cdd-apps li.activa { display: grid; }
+  .cdd-apps .nombre { font-size: 22px; }
+  .cdd-apps .que { font-size: 15px; }
+}
+
 /* --- La señal (3D) ------------------------------------------------------------- */
 .senal {
   position: relative; height: 100vh; height: 100svh; min-height: 640px; overflow: hidden;
@@ -305,6 +415,8 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 80px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .cdd-mundo, .cdd-mundo.saliendo { transition-duration: 0.01s; }
+  .cdd-pulso, .cdd-anillo, .cdd-punto, .cdd-tramo { animation: none; }
   .flecha-punto { animation: none !important; }
   .senal-pasos li, .nav, .nav-enlaces { transition: none; }
 }

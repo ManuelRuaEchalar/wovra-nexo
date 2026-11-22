@@ -1,11 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Logo } from '../Logo'
 import { sitio } from '../sitio'
 import { fondoElegido, fondos } from './config'
 import type { Fondo } from './fondos/comun'
 import Senal from './senal/Senal'
 import { textos, type Idioma, type Textos } from './textos'
+import { Reloj } from './reloj'
 import './landing.css'
+
+/** La ciudad (foto satelital y red) se carga aparte para no demorar la primera pintura. */
+const Ciudad = lazy(() => import('./ciudad/Ciudad'))
 
 const SECCIONES = ['senal', 'red', 'recompensa', 'privacidad', 'equipo'] as const
 
@@ -142,29 +146,35 @@ function Navbar({ t, cambiarIdioma }: { t: Textos; cambiarIdioma: () => void }) 
 
 // --- Hero --------------------------------------------------------------------------
 
+/**
+ * El hero se transforma solo: las dendritas con el titular, luego se funden con la
+ * ciudad, que recorre la introducción y las aplicaciones, y vuelve a las dendritas.
+ * La introducción de la ciudad empieza recién cuando termina el fundido.
+ */
+type Fase = 'dendritas' | 'a-ciudad' | 'ciudad' | 'a-dendritas'
+const DENDRITAS_MS = 5000
+const FUNDIDO_MS = 1600
+
 function Hero({ t }: { t: Textos }) {
   const contenedor = useRef<HTMLDivElement>(null)
+  const seccion = useRef<HTMLElement>(null)
   const fondo = useRef<Fondo | null>(null)
+  const reloj = useRef(new Reloj())
+  const [fase, setFase] = useState<Fase>('dendritas')
   const [pausado, setPausado] = useState(false)
-  const pausadoRef = useRef(false)
+  const [visible, setVisible] = useState(true)
+  const detenido = pausado || !visible
+  const conDendritas = fase !== 'ciudad'
 
   useEffect(() => {
     let vivo = true
-    let visible = true
-    const el = contenedor.current!
     fondos[fondoElegido()]().then(({ montar }) => {
       if (!vivo) return
-      fondo.current = montar(el)
-      if (pausadoRef.current || !visible) fondo.current.pausar()
+      fondo.current = montar(contenedor.current!)
     })
-    // Fuera de pantalla, el fondo se detiene: no gasta batería mientras se lee el resto.
-    const io = new IntersectionObserver(([e]) => {
-      visible = e.isIntersecting
-      if (!fondo.current) return
-      if (visible && !pausadoRef.current) fondo.current.seguir()
-      else fondo.current.pausar()
-    })
-    io.observe(el)
+    // Fuera de pantalla todo se detiene: no gasta batería mientras se lee el resto.
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting))
+    io.observe(seccion.current!)
     return () => {
       vivo = false
       io.disconnect()
@@ -173,18 +183,40 @@ function Hero({ t }: { t: Textos }) {
     }
   }, [])
 
-  const alternar = () => {
-    const nuevo = !pausado
-    pausadoRef.current = nuevo
-    setPausado(nuevo)
-    if (nuevo) fondo.current?.pausar()
-    else fondo.current?.seguir()
-  }
+  // Las dendritas solo se animan mientras se ven.
+  useEffect(() => {
+    const f = fondo.current
+    if (!f) return
+    if (conDendritas && !detenido) f.seguir()
+    else f.pausar()
+  })
+
+  // Secuencia: dendritas → fundido → ciudad (avisa al terminar) → fundido → dendritas.
+  useEffect(() => {
+    const r = reloj.current
+    if (fase === 'dendritas') r.programar(() => setFase('a-ciudad'), DENDRITAS_MS)
+    if (fase === 'a-ciudad') r.programar(() => setFase('ciudad'), FUNDIDO_MS)
+    if (fase === 'a-dendritas') r.programar(() => setFase('dendritas'), FUNDIDO_MS)
+    return () => r.limpiar()
+  }, [fase])
+
+  useEffect(() => {
+    if (detenido) reloj.current.pausar()
+    else reloj.current.seguir()
+  }, [detenido])
+
+  const terminarCiudad = useCallback(() => setFase('a-dendritas'), [])
+  const titularVisible = fase === 'dendritas' || fase === 'a-dendritas'
 
   return (
-    <section className="hero" id="arriba">
+    <section className="hero" id="arriba" ref={seccion} data-fase={fase}>
       <div className="hero-fondo" ref={contenedor} aria-hidden="true" />
-      <div className="hero-texto">
+      <div className="hero-ciudad">
+        <Suspense fallback={null}>
+          <Ciudad t={t} activa={fase === 'ciudad'} pausada={detenido} alTerminar={terminarCiudad} />
+        </Suspense>
+      </div>
+      <div className="hero-texto" inert={!titularVisible}>
         <div className="hero-principal">
           <h1>{t.hero.titulo}</h1>
           <p className="hero-frase">{t.hero.frase}</p>
@@ -206,7 +238,7 @@ function Hero({ t }: { t: Textos }) {
           </div>
         </div>
       </div>
-      <button className="hero-pausa" onClick={alternar} aria-pressed={pausado}>
+      <button className="hero-pausa" onClick={() => setPausado(!pausado)} aria-pressed={pausado}>
         {pausado ? t.hero.seguir : t.hero.pausar}
       </button>
     </section>
