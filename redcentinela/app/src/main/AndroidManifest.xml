@@ -73,6 +73,19 @@
             android:turnScreenOn="true"
             tools:ignore="DiscouragedApi,LockedOrientationActivity" />
 
+        <!-- Hacer sonar: pantalla blanca a todo brillo, sobre el bloqueo -->
+        <activity
+            android:name=".ui.SonandoActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait"
+            android:showWhenLocked="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.RedCentinela"
+            android:turnScreenOn="true"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity" />
+
         <!-- Apagado falso de prueba, cuando aún no se activó la accesibilidad -->
         <activity
             android:name=".ui.FakeShutdownActivity"

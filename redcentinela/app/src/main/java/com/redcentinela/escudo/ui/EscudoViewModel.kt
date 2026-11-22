@@ -168,6 +168,15 @@ class EscudoViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Muestra el apagado simulado ahora, sin esperar al botón de encendido. */
+    /** Prueba "hacer sonar": sirena, linterna y pantalla blanca durante unos segundos. */
+    fun testRing() {
+        val app = getApplication<Application>()
+        com.redcentinela.escudo.data.alarm.Alarm.ring(app, TEST_RING_SECONDS, flash = true)
+        app.startActivity(
+            Intent(app, com.redcentinela.escudo.ui.SonandoActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    }
+
     fun testFakeShutdown() {
         val service = FakeShutdownService.instance
         if (service != null) {
@@ -350,3 +359,5 @@ class EscudoViewModel(app: Application) : AndroidViewModel(app) {
         const val SEEK_RETRY_MS = 5_000L
     }
 }
+
+private const val TEST_RING_SECONDS = 6
