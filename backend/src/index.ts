@@ -76,7 +76,7 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 app.listen(config.puerto, async () => {
-  console.log(`[servidor] escuchando en ${config.urlPublica}`);
+  console.log(`[servidor] escuchando en el puerto ${config.puerto} · URL pública ${config.urlPublica}`);
   try {
     cuentaPlataforma = await prepararPlataforma();
     console.log(`[recompensas] cuenta de plataforma (testnet): ${cuentaPlataforma}`);
