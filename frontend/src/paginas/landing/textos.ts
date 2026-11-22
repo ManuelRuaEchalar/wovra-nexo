@@ -157,8 +157,9 @@ const es = {
   unete: {
     eyebrow: 'Únete',
     titulo: 'La red crece con cada celular.',
-    bajada: 'Estamos preparando las primeras pruebas en Sucre. Escríbenos si quieres llevar Dendra en tu celular o sumar a tu organización.',
-    accion: 'Escríbenos',
+    bajada: 'Descarga la app para Android e instálala en tu celular. Si quieres sumar a tu organización a las primeras pruebas en Sucre, escríbenos.',
+    accion: 'Descargar la app (APK)',
+    correo: 'Organizaciones:',
   },
 }
 
@@ -313,8 +314,9 @@ const en: Textos = {
   unete: {
     eyebrow: 'Join',
     titulo: 'The network grows with every phone.',
-    bajada: 'We are preparing the first trials in Sucre. Write to us if you want Dendra on your phone or want to bring in your organization.',
-    accion: 'Write to us',
+    bajada: 'Download the Android app and install it on your phone. If you want to bring your organization into the first trials in Sucre, write to us.',
+    accion: 'Download the app (APK)',
+    correo: 'Organizations:',
   },
 }
 

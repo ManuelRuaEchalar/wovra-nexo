@@ -135,7 +135,7 @@ function Hero({ t }: { t: Textos }) {
             <a className="btn btn-luz" href="#senal">
               {t.hero.principal}
             </a>
-            <a className="btn btn-linea" href="#unete">
+            <a className="btn btn-linea" href="/dendra.apk" download>
               {t.hero.secundaria}
             </a>
           </div>
@@ -269,12 +269,14 @@ function Unete({ t }: { t: Textos }) {
     <section className="seccion unete" id="unete" aria-labelledby="unete-titulo">
       <div className="wrap unete-caja">
         <Cabeza id="unete-titulo" eyebrow={t.unete.eyebrow} titulo={t.unete.titulo} bajada={t.unete.bajada} />
+        <a className="btn btn-luz" href="/dendra.apk" download>
+          {t.unete.accion}
+        </a>
         {sitio.contacto && (
-          <a className="btn btn-luz" href={`mailto:${sitio.contacto}`}>
-            {t.unete.accion}
-          </a>
+          <p className="unete-correo">
+            {t.unete.correo} <a href={`mailto:${sitio.contacto}`}>{sitio.contacto}</a>
+          </p>
         )}
-        {sitio.contacto && <p className="unete-correo">{sitio.contacto}</p>}
       </div>
     </section>
   )

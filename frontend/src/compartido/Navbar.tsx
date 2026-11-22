@@ -102,7 +102,7 @@ export function Navbar({
               <i aria-hidden="true" />
               {t.reportar}
             </a>
-            <a className="nav-cta" href={`${base}#unete`} onClick={cerrar}>
+            <a className="nav-cta" href="/dendra.apk" download onClick={cerrar}>
               {t.unete}
             </a>
           </div>
