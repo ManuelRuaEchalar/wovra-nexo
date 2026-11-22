@@ -198,14 +198,6 @@ function Hero({ t }: { t: Textos }) {
             </a>
           </div>
         </div>
-        <div className="hero-usos">
-          <p>{t.hero.usosTitulo}</p>
-          <ul>
-            {t.hero.usos.map((u) => (
-              <li key={u}>{u}</li>
-            ))}
-          </ul>
-        </div>
       </div>
       <button className="hero-pausa" onClick={alternar} aria-pressed={pausado}>
         {pausado ? t.hero.seguir : t.hero.pausar}
