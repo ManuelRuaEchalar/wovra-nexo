@@ -52,10 +52,16 @@
   /* --- Superposiciones por aplicación ----------------------------------------------- */
   .app { opacity: 0; transition: opacity 0.9s; pointer-events: none; }
   .app.activa { opacity: 1; transition-delay: 1.2s; }
-  .etiqueta rect { fill: rgba(3, 16, 14, 0.82); stroke: rgba(159, 240, 196, 0.45); stroke-width: 0.6; }
-  .etiqueta text { font: 600 10px Hanken, sans-serif; fill: #e9f3ef; letter-spacing: 0.01em; }
-  .etiqueta .dato { fill: var(--destello); }
-  .etiqueta circle { fill: var(--aurora); }
+  /* Anotaciones de mapa: guía fina en codo, número grande y rótulo pequeño, sin caja. */
+  .nota-mapa text { paint-order: stroke; stroke: rgba(3, 16, 14, 0.78); stroke-linejoin: round; }
+  .nota-mapa .cifra { font: 300 30px Sora, sans-serif; letter-spacing: -0.04em; fill: #f6fbf9; stroke-width: 5px; }
+  .nota-mapa .unidad { font: 300 15px Sora, sans-serif; fill: var(--destello); stroke-width: 4px; }
+  .nota-mapa .rotulo { font: 600 7px Hanken, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; fill: #e2ece8; stroke-width: 3px; }
+  .nota-mapa .rotulo-grande { font-size: 10px; stroke-width: 3.5px; }
+  .nota-mapa .guia { fill: none; stroke: rgba(243, 248, 246, 0.75); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .nota-mapa .remate { fill: #f6fbf9; }
+  .nota-mapa .barra-on { fill: var(--destello); filter: url(#brillo); }
+  .nota-mapa .barra-off { fill: rgba(243, 248, 246, 0.22); }
   .trazo { fill: none; stroke: var(--destello); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; filter: url(#brillo); }
   .trazo-punteado { fill: none; stroke: var(--destello); stroke-width: 2; stroke-dasharray: 1 7; stroke-linecap: round; vector-effect: non-scaling-stroke; }
   .ambar { fill: #f0a65a; stroke: #fff; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
@@ -187,17 +193,38 @@ for (const p of Object.values(hay)) {
   el('circle', { class: 'nodo', cx: p[0], cy: p[1], r: 3 }, red)
 }
 
-/* --- Etiqueta flotante con punto y dato -------------------------------------------- */
-function etiqueta(padre, [x, y], titulo, dato, dx = 14, dy = -26) {
-  const g = el('g', { class: 'etiqueta', transform: `translate(${x + dx} ${y + dy})` }, padre)
-  const ancho = 26 + (titulo.length + dato.length) * 5.25
-  el('rect', { x: 0, y: 0, width: ancho, height: 22, rx: 11 }, g)
-  el('circle', { cx: 11, cy: 11, r: 3 }, g)
-  const t = el('text', { x: 20, y: 14.6 }, g)
-  t.textContent = titulo + ' '
-  const d = el('tspan', { class: 'dato' }, t)
-  d.textContent = dato
-  el('path', { d: `M${-dx + 0} ${-dy} L0 11`, stroke: 'rgba(159,240,196,.45)', 'stroke-width': 0.8, fill: 'none', 'vector-effect': 'non-scaling-stroke' }, g)
+/* --- Anotación de mapa: guía en codo desde el punto, cifra grande y rótulo ------------ */
+// lado: 1 hacia la derecha, -1 hacia la izquierda. alto: cuánto sube la guía antes del codo.
+function anotacion(padre, [x, y], { cifra, unidad = '', rotulo, lado = 1, alto = 34, largo = 26 }) {
+  const g = el('g', { class: 'nota-mapa' }, padre)
+  const cx = x + lado * 10, cy = y - alto, fx = cx + lado * largo
+  el('path', { class: 'guia', d: `M${x} ${y} L${cx} ${cy} L${fx} ${cy}` }, g)
+  el('circle', { class: 'remate', cx: fx, cy: cy, r: 1.6 }, g)
+  const ancla = lado > 0 ? 'start' : 'end'
+  const tx = fx + lado * 6
+  const t = el('text', { class: 'cifra', x: tx, y: cy + 9, 'text-anchor': ancla }, g)
+  t.textContent = cifra
+  if (unidad) { const u = el('tspan', { class: 'unidad', dx: 4 }, t); u.textContent = unidad }
+  const r = el('text', { class: 'rotulo', x: tx + lado * 1, y: cy + 21, 'text-anchor': ancla }, g)
+  r.textContent = rotulo
+  return g
+}
+
+/** Cobertura por operadora: barras como el ícono de señal del celular, una fila por operadora. */
+function cobertura(padre, [x, y], filas) {
+  const g = el('g', { class: 'nota-mapa' }, padre)
+  const cx = x + 12, cy = y - 40, fx = cx + 40
+  el('path', { class: 'guia', d: `M${x} ${y} L${cx} ${cy} L${fx} ${cy}` }, g)
+  el('circle', { class: 'remate', cx: fx, cy: cy, r: 1.6 }, g)
+  filas.forEach(([nombre, nivel], k) => {
+    const by = cy - 14 + k * 24
+    for (let b = 0; b < 4; b++) {
+      const h = 5 + b * 4
+      el('rect', { class: b < nivel ? 'barra-on' : 'barra-off', x: fx + 8 + b * 6.5, y: by + 18 - h, width: 4.4, height: h, rx: 0.8 }, g)
+    }
+    const t = el('text', { class: 'rotulo rotulo-grande', x: fx + 42, y: by + 17 }, g)
+    t.textContent = nombre
+  })
   return g
 }
 
@@ -214,7 +241,7 @@ const apps = [
       }
       el('circle', { class: 'anillo', cx: surtidor[0], cy: surtidor[1], r: 16 }, g)
       el('circle', { class: 'ambar', cx: surtidor[0], cy: surtidor[1], r: 5 }, g)
-      etiqueta(g, surtidor, 'Surtidor ·', '14 autos · ~25 min', 16, -30)
+      anotacion(g, surtidor, { cifra: '14', unidad: 'autos', rotulo: 'En fila · unos 25 min' })
     },
   },
   {
@@ -226,7 +253,7 @@ const apps = [
       const micro = el('circle', { r: 6, fill: '#f3f8f6', filter: 'url(#brillo)' }, g)
       el('animateMotion', { dur: '9s', repeatCount: 'indefinite', path: ruta(recorrido) }, micro)
       for (const p of [P(1, 4), P(4, 2), P(7, 2)]) el('circle', { cx: p[0], cy: p[1], r: 4, fill: 'var(--tinta)', stroke: 'var(--destello)', 'stroke-width': 1.5, 'vector-effect': 'non-scaling-stroke' }, g)
-      etiqueta(g, P(4, 2), 'Línea A ·', 'llega en 4 min', 16, -34)
+      anotacion(g, P(4, 2), { cifra: '4', unidad: 'min', rotulo: 'Línea A · va por la mitad' })
     },
   },
   {
@@ -238,20 +265,20 @@ const apps = [
         const esquinas = [P(i - 0.42, j - 0.42), P(i + 0.42, j - 0.42), P(i + 0.42, j + 0.42), P(i - 0.42, j + 0.42)]
         el('path', { class: 'celda', d: ruta(esquinas) + ' Z', 'fill-opacity': f * 0.5, 'stroke-opacity': f + 0.15 }, g)
       }
-      etiqueta(g, P(1.5, 3.5), 'Entel ●●●○ · Tigo ●●○○ ·', 'Viva ●○○○', 18, -40)
+      cobertura(g, P(1.5, 3.5), [['Entel', 3], ['Tigo', 2], ['Viva', 1]])
     },
   },
   {
     nombre: 'Los apagones',
     que: 'Dónde se cortó la luz y desde cuándo, avisado por los propios vecinos.',
-    foco: P(5.8, 2.8), dibujar(g) {
+    foco: P(6.2, 2.6), dibujar(g) {
       const zona = [P(5, 2), P(6.5, 2), P(6.5, 3.5), P(5, 3.5)]
       el('path', { class: 'sin-luz', d: ruta(zona) + ' Z' }, g)
       for (const [i, j] of [[5.4, 2.4], [6, 2.5], [5.6, 3.1], [6.2, 3.2], [5.2, 2.9]]) {
         const [x, y] = P(i, j)
         el('circle', { class: 'apagado', cx: x, cy: y, r: 2.4 }, g)
       }
-      etiqueta(g, P(5, 2), 'Sin luz desde 19:40 ·', '32 avisos', -40, -36)
+      anotacion(g, P(6.5, 2.75), { cifra: '19:40', rotulo: 'Sin luz · 32 vecinos avisaron', alto: 24, largo: 18 })
     },
   },
   {
@@ -264,7 +291,7 @@ const apps = [
       el('circle', { class: 'anillo', cx: casa[0], cy: casa[1], r: 14 }, g)
       el('circle', { cx: casa[0], cy: casa[1], r: 6, fill: 'var(--aurora)', filter: 'url(#brillo)' }, g)
       el('path', { d: `M${casa[0] - 2.6} ${casa[1]} l1.9 2 l3.4 -3.8`, stroke: '#03100e', 'stroke-width': 1.6, fill: 'none', 'stroke-linecap': 'round' }, g)
-      etiqueta(g, casa, 'Llegó a casa ·', '22:14', 16, -32)
+      anotacion(g, casa, { cifra: '22:14', rotulo: 'Llegó a casa · tu círculo ya sabe' })
     },
   },
   {
@@ -276,7 +303,7 @@ const apps = [
       el('path', { class: 'trazo-punteado', d: vuelta }, g)
       const huella = el('circle', { r: 4.5, fill: '#f0a65a', filter: 'url(#brillo)' }, g)
       el('animateMotion', { dur: '7s', repeatCount: 'indefinite', path: vuelta }, huella)
-      etiqueta(g, [c[0] + 22, c[1] - 4], 'Huellita ·', 'vista hace 2 min', 14, -30)
+      anotacion(g, [c[0] + 22, c[1] - 4], { cifra: '2', unidad: 'min', rotulo: 'Huellita · la vio un celular cerca' })
     },
   },
 ]
