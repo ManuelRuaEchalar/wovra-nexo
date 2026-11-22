@@ -111,13 +111,14 @@ const POSES: Record<Rol, Pose[]> = {
 
 /** Intensidad de cada flujo de señal en cada escena. */
 const FLUJOS = {
-  onda: [0.6, 0, 0, 1, 0, 0, 1, 0.4, 0], // el celular perdido emite
+  onda: [0.6, 0, 0, 1, 0, 0, 0.35, 0.4, 0], // el celular perdido emite
   bluetooth: [0.8, 0, 0, 0, 1, 0, 0, 0, 0], // perdido → celular cercano
   internet: [0.8, 0, 0, 0, 1, 0, 0, 0, 0], // celular cercano → círculo
   orden: [0, 0, 1, 0, 0, 0, 0.7, 0, 0], // círculo → perdido: reportar, hacer sonar
   cerca: [0, 0, 0, 0, 0, 1, 0, 0, 0], // perdido → círculo, de cerca (brújula)
   reclamo: [0, 0, 0, 0, 0, 0, 0, 0.8, 0], // quien lo encontró → escrow
   pago: [0, 0, 0, 0, 0, 0, 0, 0, 1], // el escrow paga a quien lo devolvió
+  sonar: [0, 0, 0, 0, 0, 0, 1, 0, 0], // hacer sonar: gira, vibra, linterna y ondas de sonido
 }
 
 /** Intensidad de un flujo en el progreso p, interpolada entre escenas. */
@@ -388,6 +389,36 @@ export function crearEscena(canvas: HTMLCanvasElement, op: OpcionesEscena): Esce
   const telefonos: Record<Rol, Telefono> = { tuyo: crearTelefono(), nodo: crearTelefono(), circulo: crearTelefono() }
   for (const lista of Object.values(op.pantallas)) for (const a of lista) if (a) pedirImagen(a)
 
+  // --- Hacer sonar: linterna en la espalda del celular perdido y ondas de sonido
+  const matLed = new THREE.MeshBasicMaterial({ color: 0x1a2421, toneMapped: false })
+  const led = new THREE.Mesh(new THREE.CircleGeometry(0.022, 24), matLed)
+  led.position.set(-0.075, 0.665, -FRENTE - 0.031)
+  led.rotation.y = Math.PI
+  telefonos.tuyo.grupo.add(led)
+  const matDestello = new THREE.SpriteMaterial({
+    map: punto, color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false,
+  })
+  const destello = new THREE.Sprite(matDestello)
+  destello.position.set(-0.075, 0.665, -FRENTE - 0.08)
+  destello.scale.setScalar(1.1)
+  telefonos.tuyo.grupo.add(destello)
+  const luzLinterna = new THREE.PointLight(0xffffff, 0, 4, 1.5)
+  luzLinterna.position.set(-0.075, 0.665, -FRENTE - 0.7)
+  telefonos.tuyo.grupo.add(luzLinterna)
+  const geoOndaSonido = new THREE.RingGeometry(0.97, 1, 96)
+  const ondasSonido = [0, 1, 2].map(() => {
+    const mat = new THREE.MeshBasicMaterial({
+      color: DESTELLO, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, side: THREE.DoubleSide,
+    })
+    const m = new THREE.Mesh(geoOndaSonido, mat)
+    mundo.add(m)
+    aDesechar.push(mat)
+    return m
+  })
+  aDesechar.push(matLed, led.geometry, matDestello, geoOndaSonido)
+  /** Vuelta acumulada del celular que suena; al terminar la escena vuelve de frente. */
+  let giro = 0
+
   // --- Señal: flujos de partículas de luz
   interface Flujo {
     puntos: THREE.Points
@@ -574,12 +605,22 @@ export function crearEscena(canvas: HTMLCanvasElement, op: OpcionesEscena): Esce
     progreso += (objetivo - progreso) * Math.min(1, dt * 1.4)
     const p = progreso
 
+    const sonar = intensidad(FLUJOS.sonar, p)
+    if (sonar > 0.5 && !reducido) giro += dt * 1.25
+    else giro += (Math.round(giro / (Math.PI * 2)) * Math.PI * 2 - giro) * Math.min(1, dt * 2.5)
+
     for (const rol of ['tuyo', 'nodo', 'circulo'] as Rol[]) {
       const t = telefonos[rol]
       const pose = poseEn(POSES[rol], p)
       const flota = reducido ? 0 : Math.sin(tiempo * 0.7 + rol.length) * 0.025
-      t.grupo.position.set(pose.x, pose.y + flota, pose.z)
-      t.grupo.rotation.set(pose.rx + (reducido ? 0 : Math.sin(tiempo * 0.5 + rol.length) * 0.015), pose.ry, 0)
+      // El celular que suena vibra y gira para mostrar la linterna.
+      const vibra = rol === 'tuyo' && !reducido ? sonar : 0
+      t.grupo.position.set(pose.x + Math.sin(tiempo * 95) * 0.008 * vibra, pose.y + flota, pose.z)
+      t.grupo.rotation.set(
+        pose.rx + (reducido ? 0 : Math.sin(tiempo * 0.5 + rol.length) * 0.015),
+        pose.ry + (rol === 'tuyo' ? giro : 0),
+        Math.sin(tiempo * 70) * 0.02 * vibra,
+      )
       const s = 0.7 + 0.3 * pose.v
       t.grupo.scale.setScalar(s)
       t.grupo.visible = pose.v > 0.02
@@ -599,6 +640,26 @@ export function crearEscena(canvas: HTMLCanvasElement, op: OpcionesEscena): Esce
     }
 
     const { tuyo, nodo, circulo } = telefonos
+
+    // Linterna: parpadea como en la app (180 ms encendida, 180 ms apagada).
+    const encendida = sonar > 0.05 && Math.floor((tiempo * 1000) / (reducido ? 600 : 180)) % 2 === 0
+    const flash = encendida ? sonar : 0
+    matLed.color.setRGB(0.1 + 0.9 * flash, 0.14 + 0.86 * flash, 0.13 + 0.87 * flash)
+    // El resplandor solo se ve cuando la espalda mira hacia la cámara.
+    const espalda = Math.max(0, Math.min(1, -Math.cos(tuyo.grupo.rotation.y) * 2.5))
+    matDestello.opacity = flash * 0.95 * espalda
+    luzLinterna.intensity = flash * 3 * espalda
+    // Ondas de sonido que salen del celular.
+    const centroSonido = centroPantalla(tuyo, 0)
+    ondasSonido.forEach((onda, i) => {
+      const fase = (tiempo * 0.75 + i / ondasSonido.length) % 1
+      onda.visible = sonar > 0.02
+      onda.position.copy(centroSonido)
+      onda.quaternion.copy(camara.quaternion)
+      onda.scale.setScalar(0.5 + fase * 1.15)
+      ;(onda.material as THREE.MeshBasicMaterial).opacity = sonar * (1 - fase) * 0.4
+    })
+
     moverOnda(onda, centroPantalla(tuyo, 0), tuyo.grupo, intensidad(FLUJOS.onda, p), tiempo, 1.1)
     moverArco(bluetooth, centroPantalla(tuyo), centroPantalla(nodo), intensidad(FLUJOS.bluetooth, p), tiempo)
     moverArco(internet, centroPantalla(nodo), centroPantalla(circulo), intensidad(FLUJOS.internet, p), tiempo)
