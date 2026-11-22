@@ -35,7 +35,12 @@ enum class RemoteCommand(val code: String) {
 }
 
 /** Un punto de la ruta de otro equipo, con el canal por el que llegó. */
-data class TrackPoint(val point: GeoPoint, val via: CommChannel)
+data class TrackPoint(
+    val point: GeoPoint,
+    val via: CommChannel,
+    /** Si un teléfono de la red lo guardó y lo entregó tarde: cuándo llegó. */
+    val deliveredAt: Long? = null
+)
 
 /** Entrada del registro (bitácora de eventos del Escudo). */
 data class EventEntry(

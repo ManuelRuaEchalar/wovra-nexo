@@ -69,13 +69,13 @@ object SmsCodec {
         val lng = coord(longitude)
         val body = "P,$id,$lat,$lng,$accuracy,${stamp(at)},${if (stolen) "R" else "L"},$batteryPct"
         val state = if (stolen) "ROBADO" else "PERDIDO"
-        return "Red Centinela: celular de ${plain(name)} $state. " +
+        return "Dendra: celular de ${plain(name)} $state. " +
             "https://maps.google.com/?q=$lat,$lng #RC1,$body,${Crypto.tag(secret, body)}"
     }
 
     fun order(targetId: String, targetSecret: String, command: RemoteCommand, at: Long, fromId: String): String {
         val body = "C,$targetId,${command.code},${stamp(at)},$fromId"
-        return "Red Centinela #RC1,$body,${Crypto.tag(targetSecret, body)}"
+        return "Dendra #RC1,$body,${Crypto.tag(targetSecret, body)}"
     }
 
     fun found(name: String, id: String, secret: String, latitude: Double?, longitude: Double?, at: Long): String {
@@ -83,7 +83,7 @@ object SmsCodec {
         val lng = longitude?.let(::coord) ?: "x"
         val body = "F,$id,$lat,$lng,${stamp(at)}"
         val where = if (latitude != null) " https://maps.google.com/?q=$lat,$lng" else ""
-        return "Red Centinela: alguien encontro el celular de ${plain(name)}.$where " +
+        return "Dendra: alguien encontro el celular de ${plain(name)}.$where " +
             "#RC1,$body,${Crypto.tag(secret, body)}"
     }
 

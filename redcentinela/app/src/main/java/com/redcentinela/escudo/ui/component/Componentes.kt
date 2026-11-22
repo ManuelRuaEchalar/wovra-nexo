@@ -40,6 +40,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -344,7 +346,9 @@ fun Campo(
     onChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     ayuda: String = "",
-    teclado: KeyboardType = KeyboardType.Text
+    teclado: KeyboardType = KeyboardType.Text,
+    /** Para contraseñas: muestra puntos en vez del texto. */
+    oculto: Boolean = false
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(etiqueta, style = Tipo.Nota.copy(fontWeight = FontWeight(600)))
@@ -354,7 +358,8 @@ fun Campo(
             singleLine = true,
             textStyle = Tipo.Cuerpo.copy(color = Tinta),
             cursorBrush = SolidColor(Medio),
-            keyboardOptions = KeyboardOptions(keyboardType = teclado),
+            keyboardOptions = KeyboardOptions(keyboardType = if (oculto) KeyboardType.Password else teclado),
+            visualTransformation = if (oculto) PasswordVisualTransformation() else VisualTransformation.None,
             decorationBox = { inner ->
                 Box(
                     Modifier.fillMaxWidth().height(50.dp).clip(RoundedCornerShape(16.dp)).background(Superficie)

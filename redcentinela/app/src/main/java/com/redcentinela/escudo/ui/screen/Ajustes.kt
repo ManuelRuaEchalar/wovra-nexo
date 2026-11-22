@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -28,6 +29,7 @@ import com.redcentinela.escudo.ui.Permisos
 import com.redcentinela.escudo.ui.component.AvisoAmbar
 import com.redcentinela.escudo.ui.component.BotonSecundario
 import com.redcentinela.escudo.ui.component.Campo
+import com.redcentinela.escudo.ui.component.Enlace
 import com.redcentinela.escudo.ui.component.Etiqueta
 import com.redcentinela.escudo.ui.component.FilaItem
 import com.redcentinela.escudo.ui.component.Halo
@@ -56,6 +58,13 @@ fun AjustesScreen(vm: EscudoViewModel, refresco: Int, onGuardian: () -> Unit) {
     var nombre by rememberSaveable { mutableStateOf(vm.config.userName) }
     var numero by rememberSaveable { mutableStateOf(vm.config.phone ?: "") }
     var relevo by rememberSaveable { mutableStateOf(vm.config.relayUrl) }
+    var recompensa by rememberSaveable { mutableStateOf(vm.config.rewardBs.takeIf { it > 0 }?.toString() ?: "") }
+    var mensajeRecompensa by rememberSaveable { mutableStateOf(vm.config.rewardMessage) }
+    var servidorRecompensas by rememberSaveable { mutableStateOf(vm.config.rewardServerUrl) }
+    // Lo guardado, como estado: las preferencias no avisan a la pantalla cuando cambian.
+    var recompensaGuardada by rememberSaveable {
+        mutableStateOf(Triple(vm.config.rewardBs, vm.config.rewardMessage, vm.config.rewardServerUrl))
+    }
     val accesibilidad = refresco.let { Permisos.apagadoFalso(context) }
     val sinAhorro = refresco.let { Permisos.sinAhorroBateria(context) }
 
@@ -119,7 +128,7 @@ fun AjustesScreen(vm: EscudoViewModel, refresco: Int, onGuardian: () -> Unit) {
         }
         if (apagadoFalso && !accesibilidad) {
             AvisoAmbar(
-                "Para el apagado falso falta activar \"Red Centinela · Apagado falso\" en Accesibilidad.",
+                "Para el apagado falso falta activar \"Dendra · Apagado falso\" en Accesibilidad.",
                 accion = "Activar"
             ) { Permisos.abrirAccesibilidad(context) }
         }
@@ -141,6 +150,59 @@ fun AjustesScreen(vm: EscudoViewModel, refresco: Int, onGuardian: () -> Unit) {
             }
         }
 
+        Seccion("Recompensa si lo pierdes") {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "Si reportan este celular como perdido, el monto se bloquea en un escrow de Stellar y la pantalla " +
+                        "muestra un código para que quien lo encuentre lo cobre al devolverlo. Tú confirmas el pago. " +
+                        "Nunca se ofrece en un robo.",
+                    style = Tipo.Nota
+                )
+                Campo(
+                    "Monto en bolivianos (vacío = sin recompensa)", recompensa,
+                    { recompensa = it.filter(Char::isDigit).take(3) },
+                    ayuda = "50", teclado = KeyboardType.Number
+                )
+                Campo("Mensaje para quien lo encuentre", mensajeRecompensa, { mensajeRecompensa = it.take(120) }, ayuda = "Gracias por devolverlo")
+                var compartir by rememberSaveable { mutableStateOf(vm.config.rewardSharePct > 0) }
+                Tarjeta(relleno = 16.dp) {
+                    FilaItem(
+                        "Compartir 10 % con la red",
+                        "Si te lo devuelven, una parte va a los teléfonos que lo vieron y avisaron dónde estaba"
+                    ) {
+                        Interruptor(compartir) {
+                            compartir = it
+                            vm.config.rewardSharePct = if (it) 10 else 0
+                        }
+                    }
+                }
+                Campo("Servidor de recompensas", servidorRecompensas, { servidorRecompensas = it.trim() }, ayuda = "https://…", teclado = KeyboardType.Uri)
+                val monto = recompensa.toIntOrNull() ?: 0
+                if (Triple(monto, mensajeRecompensa.trim(), servidorRecompensas.trimEnd('/')) != recompensaGuardada) {
+                    BotonSecundario("Guardar recompensa") {
+                        vm.config.rewardBs = monto
+                        vm.config.rewardMessage = mensajeRecompensa
+                        vm.config.rewardServerUrl = servidorRecompensas
+                        recompensa = vm.config.rewardBs.takeIf { it > 0 }?.toString() ?: ""
+                        servidorRecompensas = vm.config.rewardServerUrl
+                        recompensaGuardada = Triple(vm.config.rewardBs, vm.config.rewardMessage, vm.config.rewardServerUrl)
+                        vm.say(
+                            if (vm.config.rewardBs > 0) "Listo: ${vm.config.rewardBs} Bs si se pierde (máximo ${EscudoConfig.MAX_REWARD_BS})."
+                            else "Recompensa desactivada."
+                        )
+                    }
+                }
+            }
+        }
+
+        Seccion("Ayudas a la red") {
+            AyudasRed(vm)
+        }
+
+        Seccion("Panel web") {
+            PanelWeb(vm)
+        }
+
         Seccion("Privacidad") {
             Tarjeta(relleno = 16.dp) {
                 Vineta("Tu ubicación solo sale del teléfono cuando está reportado como robado o perdido.")
@@ -153,6 +215,8 @@ fun AjustesScreen(vm: EscudoViewModel, refresco: Int, onGuardian: () -> Unit) {
 
         Seccion("Probar el Escudo") {
             Tarjeta(relleno = 16.dp) {
+                Prueba("Probar hacer sonar", "Suena a todo volumen, parpadea la linterna y la pantalla se pone blanca unos segundos.") { vm.testRing() }
+                Separador()
                 Prueba("Probar apagado falso", "Muestra el apagado simulado ahora. Para salir: toca la pantalla 5 veces seguidas.") { vm.testFakeShutdown() }
                 Separador()
                 Prueba("Simular robo en este celular", "Entra en alerta: envía tu ubicación a tu círculo por la cascada.") { vm.simulateTheft() }
@@ -198,3 +262,106 @@ private fun Seccion(titulo: String, contenido: @Composable () -> Unit) {
 private fun Prueba(titulo: String, nota: String, onClick: () -> Unit) {
     FilaItem(titulo, nota, onClick = onClick) { Icon(Iconos.Chevron, null, tint = Texto2, modifier = Modifier.size(18.dp)) }
 }
+
+/**
+ * Cuenta de rescate: con un correo y una contraseña, el dueño puede seguir y
+ * controlar este celular desde cualquier navegador (sin necesitar a nadie del
+ * círculo). La contraseña no sale del teléfono.
+ */
+@Composable
+private fun PanelWeb(vm: EscudoViewModel) {
+    val correoGuardado by vm.rescueEmail.collectAsStateWithLifecycle()
+    val trabajando by vm.rescueWorking.collectAsStateWithLifecycle()
+    var editando by rememberSaveable { mutableStateOf(false) }
+    var correo by rememberSaveable { mutableStateOf(correoGuardado ?: "") }
+    var clave by remember { mutableStateOf("") }
+    var clave2 by remember { mutableStateOf("") }
+    val servidor = vm.config.rewardServerUrl
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            "Si no tienes a nadie en tu círculo, o no puedes comunicarte con esa persona, entra desde cualquier " +
+                "computadora para ver dónde está tu celular, reportarlo, hacerlo sonar o terminar la alerta.",
+            style = Tipo.Nota
+        )
+        if (correoGuardado != null && !editando) {
+            Tarjeta(relleno = 16.dp) {
+                Column(Modifier.padding(vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Etiqueta("Cuenta del panel", color = Medio)
+                    Text(correoGuardado!!, style = Tipo.Fila)
+                    if (servidor.isNotBlank()) Text("Entra en $servidor/panel", style = Tipo.Nota)
+                    if (trabajando) Text("Guardando…", style = Tipo.Nota, color = Medio)
+                    else androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                        Enlace("Cambiar contraseña", Modifier.weight(1f)) { editando = true }
+                        Enlace("Eliminar cuenta", Modifier.weight(1f), color = AmbarTexto) { vm.removeRescue() }
+                    }
+                }
+            }
+        } else {
+            Campo("Correo", correo, { correo = it.trim() }, ayuda = "tu@correo.com", teclado = KeyboardType.Email)
+            Campo("Contraseña (mínimo 8 caracteres)", clave, { clave = it }, oculto = true)
+            Campo("Repite la contraseña", clave2, { clave2 = it }, oculto = true)
+            Text(
+                "Anótala en un lugar seguro: no se puede recuperar. Nadie más la conoce, ni siquiera nuestro servidor.",
+                style = Tipo.Nota, color = Texto2
+            )
+            when {
+                servidor.isBlank() -> AvisoAmbar("Primero configura el servidor en \"Recompensa si lo pierdes\".")
+                trabajando -> Text("Cifrando y guardando…", style = Tipo.Nota, color = Medio)
+                else -> BotonSecundario(if (correoGuardado == null) "Crear cuenta del panel" else "Guardar") {
+                    if (clave != clave2) vm.say("Las contraseñas no coinciden.")
+                    else vm.setUpRescue(correo, clave) {
+                        clave = ""; clave2 = ""; editando = false
+                    }
+                }
+            }
+            if (editando) Enlace("Cancelar") { editando = false; clave = ""; clave2 = "" }
+        }
+    }
+}
+
+/**
+ * Lo que este teléfono ganó como nodo: cada aviso útil que entregó de un
+ * celular ajeno en alerta se paga en USDC desde el fondo de la red.
+ */
+@Composable
+private fun AyudasRed(vm: EscudoViewModel) {
+    val stats by vm.nodeStats.collectAsStateWithLifecycle()
+    androidx.compose.runtime.LaunchedEffect(Unit) { vm.refreshNodeStats() }
+    val uri = androidx.compose.ui.platform.LocalUriHandler.current
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            "Con el Escudo activo, tu celular escucha por Bluetooth a los celulares perdidos o robados que pasan cerca " +
+                "y entrega su aviso cifrado (sin poder leerlo). Cada aviso útil se paga en USDC en la red Stellar, " +
+                "desde un fondo que se alimenta con las suscripciones.",
+            style = Tipo.Nota
+        )
+        val s = stats
+        Tarjeta(relleno = 16.dp) {
+            if (s == null) {
+                Column(Modifier.padding(vertical = 14.dp)) {
+                    Text("Todavía no hay datos de la red.", style = Tipo.Nota)
+                }
+            } else {
+                FilaItem("Avisos útiles entregados", "Celulares ajenos que ayudaste a ubicar") {
+                    Text(s.optInt("avisos").toString(), style = Tipo.Fila, color = Medio)
+                }
+                Separador()
+                FilaItem("Ganado por avisos", "Pagado ${usdc(s.optDouble("pagadoUsdc"))} · por pagar ${usdc(s.optDouble("pendienteUsdc"))}") {
+                    Text(usdc(s.optDouble("ganadoUsdc")), style = Tipo.Fila, color = Medio)
+                }
+                if (s.optDouble("recompensasUsdc") > 0) {
+                    Separador()
+                    FilaItem("De recompensas compartidas", "Dueños que recuperaron su celular gracias a tu aviso") {
+                        Text(usdc(s.optDouble("recompensasUsdc")), style = Tipo.Fila, color = Medio)
+                    }
+                }
+            }
+        }
+        s?.optString("enlaceCuenta")?.takeIf { it.isNotBlank() }?.let { enlace ->
+            Enlace("Ver tu cuenta en la red Stellar", color = Medio) { runCatching { uri.openUri(enlace) } }
+        }
+    }
+}
+
+private fun usdc(v: Double) = if (v.isNaN()) "0 USDC" else "%.2f USDC".format(v).replace('.', ',')

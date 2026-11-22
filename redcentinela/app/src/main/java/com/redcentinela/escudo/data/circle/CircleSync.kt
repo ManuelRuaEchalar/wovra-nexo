@@ -16,6 +16,7 @@ import com.redcentinela.escudo.domain.model.RemoteCommand
 import com.redcentinela.escudo.domain.model.RemoteState
 import com.redcentinela.escudo.domain.model.ShieldStatus
 import com.redcentinela.escudo.domain.model.TrackPoint
+import com.redcentinela.escudo.domain.service.EscudoCoordinator
 import com.redcentinela.escudo.service.EscudoConfig
 import com.redcentinela.escudo.service.Notifier
 import kotlinx.coroutines.CoroutineScope
@@ -29,6 +30,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
@@ -49,10 +52,18 @@ class CircleSync(
     private val relay: RelayClient,
     private val scope: CoroutineScope,
     private val notifier: Notifier,
+    /** Avisos ajenos captados sin internet, a entregar después. */
+    private val forwardQueue: ForwardQueue,
     private val clock: () -> Long = System::currentTimeMillis
 ) {
     private val _remote = MutableStateFlow<Map<String, RemoteState>>(emptyMap())
     val remote: StateFlow<Map<String, RemoteState>> = _remote.asStateFlow()
+
+    /**
+     * Lo conecta el contenedor: un teléfono de la red (nodo) entregó un aviso
+     * válido y nuevo de alguien de mi círculo; se confirma para que cobre.
+     */
+    var onUsefulRelay: ((deviceId: String, nodeId: String, at: Long) -> Unit)? = null
 
     /** Lo conecta el contenedor: ejecuta una orden recibida del círculo. */
     var onCommand: (suspend (RemoteCommand, CircleMember) -> Unit)? = null
@@ -60,7 +71,7 @@ class CircleSync(
     private var job: Job? = null
     private val seen = ConcurrentHashMap.newKeySet<String>()
     private val lastSighting = ConcurrentHashMap<String, Long>()
-    private val forwarded = ConcurrentHashMap.newKeySet<String>()
+    private val flushing = Mutex()
 
     private val feedTopic get() = Crypto.topic(config.secret, "feed")
     private val inboxTopic get() = Crypto.topic(config.secret, "inbox")
@@ -69,6 +80,12 @@ class CircleSync(
     fun start() {
         if (job?.isActive == true) return
         job = scope.launch {
+            launch {
+                while (true) {
+                    if (forwardQueue.size() > 0 && relay.hasInternet()) flushForwarded()
+                    delay(FLUSH_EVERY_MS)
+                }
+            }
             circle.members
                 .map { list -> list.map { it.id to it.secret } }
                 .distinctUntilChanged()
@@ -128,7 +145,13 @@ class CircleSync(
 
     /** Valida y ejecuta una orden (llegue por internet o por SMS). */
     suspend fun acceptCommand(command: RemoteCommand, fromId: String, at: Long) {
-        val from = circle.byId(fromId) ?: return
+        // El panel web firma como este mismo equipo: es el dueño desde un navegador.
+        val from = if (fromId == config.deviceId) {
+            if (command !in WEB_COMMANDS) return
+            CircleMember(config.deviceId, EscudoCoordinator.WEB_PANEL, config.secret)
+        } else {
+            circle.byId(fromId) ?: return
+        }
         val now = clock()
         if (at <= config.lastCommandAt || at < now - MAX_COMMAND_AGE || at > now + CLOCK_SKEW) return
         config.lastCommandAt = at
@@ -195,7 +218,16 @@ class CircleSync(
         val json = runCatching { JSONObject(msg.body) }.getOrNull() ?: return
         val raw = Crypto.unb64(json.optString("a")) ?: return
         val sighting = BleCodec.parse(raw, 0, json.optLong("at", msg.timeSec * 1000)) ?: return
-        applySighting(member, sighting)
+        // Si lo guardó un teléfono sin internet, llega tarde: se anota cuándo.
+        val delivered = msg.timeSec * 1000
+        // Útil = trae una ubicación válida que no llegó ya por internet en ese rato.
+        val node = json.optString("n").takeIf { Regex("^[0-9a-f]{16}$").matches(it) }
+        val useful = node != null && BleCodec.locate(sighting, member.secret) != null &&
+            _remote.value[member.id]?.points.orEmpty().none {
+                it.via == CommChannel.INTERNET && kotlin.math.abs(it.point.capturedAt - sighting.at) < USEFUL_GAP_MS
+            }
+        applySighting(member, sighting, deliveredAt = delivered.takeIf { it - sighting.at > LATE_MS })
+        if (useful) onUsefulRelay?.invoke(member.id, node!!, sighting.at)
     }
 
     // --- Entrada: SMS --------------------------------------------------------
@@ -242,17 +274,30 @@ class CircleSync(
             if (!seen.add("ble-$key") && sighting.at - last < SIGHTING_EVERY_MS) return
             lastSighting[sighting.deviceId] = sighting.at
             applySighting(member, sighting)
-        } else if (sighting.inAlert && sighting.deviceId != config.deviceId && forwarded.add(key)) {
-            // Equipo ajeno en alerta: se reenvía tal cual para que su círculo
-            // lo reciba. Este teléfono no puede leer su ubicación.
-            scope.launch {
-                val body = JSONObject().put("a", Crypto.b64(sighting.raw)).put("at", sighting.at)
-                if (!relay.publish(sightTopic(sighting.deviceId), body.toString())) forwarded.remove(key)
+        } else if (sighting.inAlert && sighting.deviceId != config.deviceId) {
+            // Equipo ajeno en alerta: se guarda tal cual y se entrega a su
+            // círculo en cuanto haya internet (ahora o más tarde). Este
+            // teléfono no puede leer su ubicación.
+            if (forwardQueue.add(sighting.deviceId, Crypto.b64(sighting.raw), sighting.at) && relay.hasInternet()) {
+                scope.launch { flushForwarded() }
             }
         }
     }
 
-    private fun applySighting(member: CircleMember, sighting: Sighting) {
+    /** Entrega al relevo los avisos ajenos guardados, del más antiguo al más nuevo. */
+    suspend fun flushForwarded() {
+        if (!flushing.tryLock()) return
+        try {
+            forwardQueue.flush { e ->
+                val body = JSONObject().put("a", e.raw).put("at", e.at).put("n", config.nodeId)
+                relay.publish(sightTopic(e.deviceId), body.toString())
+            }
+        } finally {
+            flushing.unlock()
+        }
+    }
+
+    private fun applySighting(member: CircleMember, sighting: Sighting, deliveredAt: Long? = null) {
         val status = when (sighting.status) {
             BleCodec.STATUS_STOLEN -> ShieldStatus.ALERTA_ROBO
             BleCodec.STATUS_LOST -> ShieldStatus.ALERTA_PERDIDA
@@ -265,7 +310,8 @@ class CircleSync(
             listOf(
                 TrackPoint(
                     GeoPoint(where.latitude, where.longitude, 30f, LocationSource.FUSED, capturedAt = sighting.at),
-                    CommChannel.BLUETOOTH
+                    CommChannel.BLUETOOTH,
+                    deliveredAt = deliveredAt
                 )
             )
         )
@@ -347,6 +393,13 @@ class CircleSync(
         private const val NOTIFY_WINDOW = 15 * 60_000L
         private const val KEEP_BEFORE_ALERT = 2 * 3_600_000L
         private const val SIGHTING_EVERY_MS = 8_000L
+        private val WEB_COMMANDS = setOf(
+            RemoteCommand.ROBO, RemoteCommand.PERDIDA, RemoteCommand.RECUPERADO, RemoteCommand.SONAR, RemoteCommand.BUSCAR
+        )
+        private const val FLUSH_EVERY_MS = 30_000L
+        private const val USEFUL_GAP_MS = 2 * 60_000L
+        /** Un aviso reenviado que llega más tarde que esto se marca "entregado tarde". */
+        private const val LATE_MS = 5 * 60_000L
         private const val MAX_POINTS = 600
         private const val MAX_EVENTS = 80
 

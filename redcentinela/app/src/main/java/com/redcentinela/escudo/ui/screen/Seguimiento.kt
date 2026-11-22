@@ -172,7 +172,8 @@ fun SeguimientoScreen(
                     when (last?.via) {
                         CommChannel.INTERNET -> "Internet"
                         CommChannel.SMS -> "SMS · sin datos"
-                        CommChannel.BLUETOOTH -> "Bluetooth · teléfono cercano"
+                        CommChannel.BLUETOOTH -> if (last.deliveredAt != null) "Bluetooth · lo guardó un teléfono de la red y llegó tarde"
+                            else "Bluetooth · teléfono cercano"
                         else -> "—"
                     }
                 )
@@ -320,7 +321,7 @@ fun RegistroScreen(vm: EscudoViewModel, memberId: String?, onBack: () -> Unit) {
 }
 
 private fun informe(titulo: String, events: List<EventEntry>, points: List<GeoPoint>): String = buildString {
-    appendLine("RED CENTINELA · Informe del Escudo")
+    appendLine("DENDRA · Informe del Escudo")
     appendLine("$titulo · generado el ${Format.day(System.currentTimeMillis())} a las ${Format.clock(System.currentTimeMillis())}")
     appendLine()
     appendLine("EVENTOS")

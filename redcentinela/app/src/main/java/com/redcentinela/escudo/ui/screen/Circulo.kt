@@ -227,7 +227,7 @@ fun CirculoArmar(vm: EscudoViewModel, modifier: Modifier = Modifier, onAdded: (C
             )
         }
         BotonPunteado("Invitar por enlace") {
-            val texto = "Te invito a mi círculo de Red Centinela. Copia este mensaje completo y, en la app, " +
+            val texto = "Te invito a mi círculo de Dendra. Copia este mensaje completo y, en la app, " +
                 "entra a Círculo → + → Pegar invitación.\n\n$card"
             context.startActivity(
                 Intent.createChooser(

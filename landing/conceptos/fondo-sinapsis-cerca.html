@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dendra · Concepto de fondo: la sinapsis, de cerca</title>
+<style>
+  /*
+   * Concepto B · "La sinapsis, de cerca". Primer plano extremo del punto donde
+   * dos dendritas casi se tocan. Son nubes de luz granulada que respiran y se
+   * abren en puntas irregulares y bifurcadas; la emisora se carga de luz, la
+   * descarga salta y la receptora se enciende y lleva la luz hacia adentro. Profundidad de
+   * campo mínima: solo el espacio entre ellas está nítido.
+   * La señal cruza como hilos eléctricos de luz granulada que titilan entre
+   * las puntas bifurcadas de las dos células.
+   * Misma estética que fondo-dendritas-luz.html.
+   */
+  @font-face { font-family: Sora; src: url(../borradores/assets/sora.ttf); }
+  @font-face { font-family: Hanken; src: url(../borradores/assets/hanken_grotesk.ttf); }
+  :root { --destello: #9ff0c4; --fondo: #f4f9f6; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #020b0a; }
+  .escena { position: fixed; inset: 0; overflow: hidden; }
+  .capa { position: absolute; inset: -5%; will-change: transform; }
+  .capa canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .luz { mix-blend-mode: screen; }
+  .vineta { position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(110% 90% at 50% 50%, transparent 35%, #01060590 70%, #010504f2 100%); }
+  .grano { position: absolute; inset: -50%; pointer-events: none; opacity: .15; mix-blend-mode: overlay; }
+  .texto { position: fixed; left: 50%; bottom: 10vh; transform: translateX(-50%); text-align: center; color: var(--fondo);
+    width: min(720px, 90vw); transition: opacity .6s; }
+  .texto.oculto { opacity: 0; }
+  .eyebrow { font: 600 12px/1 Hanken, sans-serif; letter-spacing: .18em; text-transform: uppercase; color: var(--destello); margin: 0 0 16px; }
+  h2 { font: 300 clamp(40px, 5vw, 72px)/1 Sora, sans-serif; letter-spacing: -.05em; margin: 0; }
+  .controles { position: fixed; right: 20px; bottom: 18px; display: flex; gap: 8px; }
+  .controles button { font: 600 12px Hanken, sans-serif; color: #c9d6d2; background: #0e3b3699;
+    border: 1px solid #9ff0c433; border-radius: 99px; padding: 8px 14px; cursor: pointer; backdrop-filter: blur(6px); }
+</style>
+</head>
+<body>
+<div class="escena">
+  <div class="capa" id="cFondo"><canvas id="fondo"></canvas></div>
+  <div class="capa luz" id="cIzq"><canvas id="izq"></canvas></div>
+  <div class="capa luz" id="cDer"><canvas id="der"></canvas></div>
+  <div class="capa luz" id="cFx"><canvas id="fx"></canvas></div>
+  <div class="vineta"></div>
+  <div class="grano" id="grano"></div>
+</div>
+<div class="texto" id="texto">
+  <p class="eyebrow">La señal pasa de un celular a otro</p>
+  <h2>Ninguno está solo.</h2>
+</div>
+<div class="controles">
+  <button id="btnTexto">Ocultar texto</button>
+  <button id="btnPausa">Pausar</button>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Utilidades
+// ---------------------------------------------------------------------------
+function semilla(a) {
+  return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+const lerp = (a, b, t) => a + (b - a) * t;
+const gauss = (r) => (r() + r() + r() + r() - 2) / 1.15;
+const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DPR = Math.min(devicePixelRatio || 1, 1.5);
+const VW = 1600, VH = 900;
+const AURORA = '43,208,126', DESTELLO = '159,240,196', BLANCO = '232,255,243';
+const $ = (id) => document.getElementById(id);
+
+// ---------------------------------------------------------------------------
+// Forma: dos dendritas que casi se tocan
+// ---------------------------------------------------------------------------
+/** Eje que avanza con ruido hacia un destino; el grosor lo define `perfil(t)` (t de 0 a 1). */
+function eje(r, desde, hasta, perfil, ondula = .25, angInicial = null) {
+  const pts = [], n = Math.ceil(Math.hypot(hasta.x - desde.x, hasta.y - desde.y) / 4);
+  let x = desde.x, y = desde.y, a = angInicial ?? Math.atan2(hasta.y - y, hasta.x - x);
+  for (let i = 0; i <= n; i++) {
+    if (i > 2 && Math.hypot(hasta.x - x, hasta.y - y) < 5) break; // llegó: no dar vueltas en el destino
+    const t = i / n, faltan = n - i;
+    let dif = Math.atan2(hasta.y - y, hasta.x - x) - a;
+    while (dif > Math.PI) dif -= 2 * Math.PI; while (dif < -Math.PI) dif += 2 * Math.PI;
+    a += dif * Math.min(1, .05 + 3 / Math.max(1, faltan)) + (r() - .5) * ondula * (1 - t);
+    pts.push({ x, y, w: perfil(t) });
+    x += Math.cos(a) * 4; y += Math.sin(a) * 4;
+  }
+  return pts;
+}
+
+/** Ramas laterales finas que salen de un eje hacia los bordes. */
+function ramitas(r, base, cantidad, ramas) {
+  for (let i = 0; i < cantidad; i++) {
+    const j = Math.floor(lerp(.05, .7, r()) * base.length), p = base[j], q = base[Math.min(j + 1, base.length - 1)];
+    const ang = Math.atan2(q.y - p.y, q.x - p.x) + (r() < .5 ? -1 : 1) * (.6 + r() * .8);
+    const largo = 260 + r() * 520, w0 = p.w * (.18 + r() * .16);
+    const fin = { x: p.x + Math.cos(ang) * largo, y: p.y + Math.sin(ang) * largo };
+    ramas.push(eje(r, p, fin, (t) => w0 * (1 - t * .85), .5));
+  }
+}
+
+const GAP = { x: 800, y: 452 };
+
+/** Ruido suave 1D determinista: grosores irregulares, como en una célula real. */
+function ruido1(r) {
+  const v = Array.from({ length: 64 }, r);
+  return (x) => { const i = Math.floor(x) & 63, f = x - Math.floor(x), s = f * f * (3 - 2 * f);
+    return lerp(v[i], v[(i + 1) & 63], s) * 2 - 1; };
+}
+
+/**
+ * Brotes cortos que nacen cerca del final del tronco (desde adentro, para que
+ * no queden sueltos) y se abren un poco hacia el espacio central. Puntas romas.
+ * lado = 1 para la emisora (izquierda), -1 para la receptora (derecha).
+ */
+function brotes(r, tronco, lado, cantidad, ramas, puntas) {
+  const nr = ruido1(r);
+  for (let i = 0; i < cantidad; i++) {
+    const j = Math.floor(tronco.length * (.88 + r() * .07)), p = tronco[j], q = tronco[Math.min(j + 1, tronco.length - 1)];
+    const dir = Math.atan2(q.y - p.y, q.x - p.x);
+    const lado2 = i % 2 === 0 ? -1 : 1;                           // alterna arriba y abajo
+    const ang = dir + lado2 * (.4 + r() * .22);
+    const largo = 105 + r() * 45;
+    const destino = { x: p.x + Math.cos(ang - lado2 * .12) * largo, y: p.y + Math.sin(ang - lado2 * .12) * largo };
+    const w0 = p.w * (.4 + r() * .12);
+    const b = eje(r, p, destino, (t) => w0 * (1 - t * .38) * (1 + .2 * nr(t * 4 + i * 5)), .45, ang);
+    ramas.push(b); puntas.push(b[b.length - 1]);
+    if (r() < .4) { // a veces, una bifurcación pequeña
+      const m = b[Math.floor(b.length * .65)], a2 = ang - lado2 * (.45 + r() * .3), l2 = 30 + r() * 26;
+      const sub = eje(r, m, { x: m.x + Math.cos(a2) * l2, y: m.y + Math.sin(a2) * l2 }, (t) => m.w * .6 * (1 - t * .5), .4, a2);
+      ramas.push(sub); puntas.push(sub[sub.length - 1]);
+    }
+  }
+}
+
+function construir() {
+  const r = semilla(4242), izq = [], der = [], puntasI = [], puntasD = [];
+  const nI = ruido1(r), nD = ruido1(r);
+  // Emisora: entra por la izquierda y termina en una punta redondeada con brotes cortos.
+  const troncoI = eje(r, { x: -200, y: 640 }, { x: GAP.x - 92, y: GAP.y + 8 },
+    (t) => 112 * (1 - t * .45) * (1 + .14 * nI(t * 6)) + 30 * Math.exp(-Math.pow((t - .94) / .06, 2)));
+  izq.push(troncoI); ramitas(r, troncoI, 6, izq);
+  puntasI.push(troncoI[troncoI.length - 1]);
+  brotes(r, troncoI, 1, 3, izq, puntasI);
+  // Receptora: igual, desde la derecha.
+  const troncoD = eje(r, { x: 1820, y: 260 }, { x: GAP.x + 92, y: GAP.y - 6 },
+    (t) => 128 * (1 - t * .5) * (1 + .14 * nD(t * 6)) + 28 * Math.exp(-Math.pow((t - .94) / .06, 2)));
+  der.push(troncoD); ramitas(r, troncoD, 7, der);
+  puntasD.push(troncoD[troncoD.length - 1]);
+  brotes(r, troncoD, -1, 2, der, puntasD);
+  return { izq, der, troncoI, troncoD, puntasI, puntasD };
+}
+
+// ---------------------------------------------------------------------------
+// Pintura de luz granulada (adaptada a grosores grandes)
+// ---------------------------------------------------------------------------
+function pintarLuz(ctx, ramas, r, brillo = 1) {
+  const W = ctx.canvas.width, H = ctx.canvas.height, m = ctx.getTransform();
+  // Resplandor difuso.
+  const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+  const t = tmp.getContext('2d'); t.setTransform(m); t.lineCap = 'round'; t.strokeStyle = `rgb(${AURORA})`;
+  for (const pts of ramas) for (let i = 1; i < pts.length; i++) {
+    t.lineWidth = pts[i].w * 1.8; t.beginPath(); t.moveTo(pts[i - 1].x, pts[i - 1].y); t.lineTo(pts[i].x, pts[i].y); t.stroke();
+  }
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'lighter';
+  ctx.filter = `blur(${30 * DPR}px)`; ctx.globalAlpha = .1 * brillo; ctx.drawImage(tmp, 0, 0);
+  ctx.filter = `blur(${8 * DPR}px)`; ctx.globalAlpha = .1 * brillo; ctx.drawImage(tmp, 0, 0);
+  ctx.restore();
+  // Granos.
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const pts of ramas) for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], ang = Math.atan2(b.y - a.y, b.x - a.x) + Math.PI / 2;
+    const n = Math.min(420, 3 + b.w * 3);
+    for (let k = 0; k < n; k++) {
+      const f = r(), d = gauss(r) * b.w * .42;
+      const centro = 1 - Math.min(1, Math.abs(d) / (b.w * .5 + .5));
+      const color = r() < .06 + centro * .12 ? BLANCO : r() < .55 ? DESTELLO : AURORA;
+      const rad = .45 + r() * (.7 + Math.min(1.4, b.w * .018));
+      // Donde hay muchos granos, cada uno brilla menos: se conserva la textura sin quemar a blanco.
+      const atenua = Math.min(1, 26 / n);
+      ctx.fillStyle = `rgba(${color},${(.05 + .2 * centro * r()) * brillo * (.35 + .65 * atenua)})`;
+      ctx.beginPath(); ctx.arc(lerp(a.x, b.x, f) + Math.cos(ang) * d, lerp(a.y, b.y, f) + Math.sin(ang) * d, rad, 0, 6.283); ctx.fill();
+    }
+    // Remate redondeado: en la punta, los granos se reparten en un disco.
+    if (i === pts.length - 1) {
+      const nCap = Math.PI * b.w * b.w * .25 * .7;   // misma densidad que el cuerpo
+      for (let k = 0; k < nCap; k++) {
+        const a2 = r() * 6.283, d2 = Math.abs(gauss(r)) * b.w * .36;
+        const cen = 1 - Math.min(1, d2 / (b.w * .5 + .5));
+        ctx.fillStyle = `rgba(${r() < .5 ? DESTELLO : AURORA},${(.04 + .16 * cen * r()) * brillo * (.35 + .65 * Math.min(1, 26 / (3 + b.w * 3)))})`;
+        ctx.beginPath(); ctx.arc(b.x + Math.cos(a2) * d2, b.y + Math.sin(a2) * d2, .45 + r() * .9, 0, 6.283); ctx.fill();
+      }
+    }
+    // Granos sueltos: la luz se dispersa alrededor.
+    for (let k = 0; k < 2; k++) {
+      ctx.fillStyle = `rgba(${DESTELLO},${.05 * brillo})`;
+      ctx.beginPath(); ctx.arc(lerp(a.x, b.x, r()) + gauss(r) * (b.w + 8), lerp(a.y, b.y, r()) + gauss(r) * (b.w + 8), .4 + r() * .6, 0, 6.283); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+/**
+ * Profundidad de campo mínima: una versión muy desenfocada de todo y, encima,
+ * la versión nítida solo cerca del espacio sináptico.
+ */
+function pintarConFoco(canvas, ramas, semillaN) {
+  const W = canvas.width, H = canvas.height, ctx = canvas.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
+  const nitida = document.createElement('canvas'); nitida.width = W; nitida.height = H;
+  const n = nitida.getContext('2d'); aplicar(n); pintarLuz(n, ramas, semilla(semillaN));
+  ctx.filter = `blur(${16 * DPR}px)`; ctx.globalAlpha = .9; ctx.drawImage(nitida, 0, 0);
+  ctx.filter = 'none'; ctx.globalAlpha = 1;
+  // Máscara de foco alrededor del espacio entre las dos puntas.
+  const m = document.createElement('canvas'); m.width = W; m.height = H;
+  const mc = m.getContext('2d');
+  mc.drawImage(nitida, 0, 0);
+  const cx = (GAP.x * escala + ox) * DPR, cy = (GAP.y * escala + oy) * DPR, rad = 520 * escala * DPR;
+  const g = mc.createRadialGradient(cx, cy, rad * .15, cx, cy, rad);
+  g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  mc.globalCompositeOperation = 'destination-in'; mc.fillStyle = g; mc.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(m, 0, 0); ctx.globalCompositeOperation = 'source-over';
+}
+
+function pintarFondo(canvas) {
+  const ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height, r = semilla(12);
+  const g = ctx.createRadialGradient(W * .5, H * .5, 0, W * .5, H * .5, Math.max(W, H) * .7);
+  g.addColorStop(0, '#0c312c'); g.addColorStop(.6, '#061b18'); g.addColorStop(1, '#020a09');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'screen';
+  for (let i = 0; i < 40; i++) { // bokeh: vesículas lejanas fuera de foco
+    const x = r() * W, y = r() * H, rad = (20 + r() * 90) * DPR;
+    const b = ctx.createRadialGradient(x, y, 0, x, y, rad);
+    b.addColorStop(0, `rgba(${AURORA},${.015 + r() * .03})`); b.addColorStop(.7, `rgba(${DESTELLO},${.01 + r() * .02})`); b.addColorStop(1, `rgba(${AURORA},0)`);
+    ctx.fillStyle = b; ctx.beginPath(); ctx.arc(x, y, rad, 0, 6.283); ctx.fill();
+  }
+  for (let i = 0; i < 500; i++) {
+    ctx.fillStyle = `rgba(${DESTELLO},${.02 + r() * .06})`;
+    ctx.beginPath(); ctx.arc(r() * W, r() * H, (.3 + r()) * DPR, 0, 6.283); ctx.fill();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Escena
+// ---------------------------------------------------------------------------
+const lienzos = ['fondo', 'izq', 'der', 'fx'].map($);
+let escala = 1, ox = 0, oy = 0, forma = null;
+const aplicar = (ctx) => ctx.setTransform(DPR * escala, 0, 0, DPR * escala, DPR * ox, DPR * oy);
+
+function preparar() {
+  const box = $('cIzq').getBoundingClientRect();
+  for (const c of lienzos) { const b = c.getBoundingClientRect(); c.width = Math.round(b.width * DPR); c.height = Math.round(b.height * DPR); }
+  escala = Math.max(box.width / VW, box.height / VH);
+  ox = (box.width - VW * escala) / 2; oy = (box.height - VH * escala) / 2;
+  forma = construir();
+  pintarFondo($('fondo'));
+  pintarConFoco($('izq'), forma.izq, 7);
+  pintarConFoco($('der'), forma.der, 8);
+}
+
+// ---------------------------------------------------------------------------
+// Animación: carga, descarga en hilos eléctricos, encendido y propagación
+// ---------------------------------------------------------------------------
+const CICLO = 10, T_CARGA = 3, T_DESCARGA = 2.6, T_PROPAGA = 3.4;
+let tiempo = 0, previo = performance.now(), pausa = false, ciclo = -1;
+let arcos = [];
+const polvo = Array.from({ length: 40 }, () => ({ x: Math.random() * VW, y: Math.random() * VH, vx: 0, vy: 0, rad: 1 + Math.random() * 3.5, prof: Math.random() }));
+
+function luz(ctx, x, y, rad, color, alfa) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, rad);
+  g.addColorStop(0, `rgba(${color},${alfa})`); g.addColorStop(1, `rgba(${color},0)`);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, rad, 0, 6.283); ctx.fill();
+}
+function chispas(ctx, x, y, disp, n, alfa) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * 6.283, d = Math.abs(Math.random() + Math.random() - 1) * disp;
+    ctx.fillStyle = `rgba(${Math.random() < .5 ? BLANCO : DESTELLO},${alfa * Math.random()})`;
+    ctx.beginPath(); ctx.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, .5 + Math.random(), 0, 6.283); ctx.fill();
+  }
+}
+
+/** Camino quebrado de un rayo entre dos puntos (desplazamiento del punto medio). */
+function rayo(a, b, desvio, prof) {
+  if (prof === 0) return [a, b];
+  const m = { x: (a.x + b.x) / 2 + (Math.random() - .5) * desvio, y: (a.y + b.y) / 2 + (Math.random() - .5) * desvio };
+  return rayo(a, m, desvio / 2, prof - 1).concat(rayo(m, b, desvio / 2, prof - 1).slice(1));
+}
+
+/** Dibuja un hilo eléctrico: resplandor, núcleo fino y granos de luz a lo largo. */
+function hilo(ctx, pts, fuerza) {
+  const trazo = (ancho, color, alfa) => {
+    ctx.strokeStyle = `rgba(${color},${alfa})`; ctx.lineWidth = ancho; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.stroke();
+  };
+  trazo(14, AURORA, .05 * fuerza);
+  trazo(4, DESTELLO, .22 * fuerza);
+  trazo(1.1, BLANCO, .75 * fuerza);
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i];
+    for (let k = 0; k < 3; k++) {
+      const f = Math.random();
+      chispas(ctx, lerp(a.x, b.x, f), lerp(a.y, b.y, f), 3.5, 1, .9 * fuerza);
+    }
+  }
+}
+
+/** Un arco nuevo: de una punta de la emisora a una de las puntas más cercanas de la receptora. */
+function nuevoArco(completo) {
+  const a = forma.puntasI[Math.floor(Math.random() * forma.puntasI.length)];
+  const cerca = forma.puntasD.slice().sort((p, q) => Math.hypot(p.x - a.x, p.y - a.y) - Math.hypot(q.x - a.x, q.y - a.y));
+  const b = cerca[Math.floor(Math.random() * Math.min(2, cerca.length))];
+  // Un "líder" (completo = false) avanza solo una parte del camino: tantea antes de la descarga.
+  const fin = completo ? b : { x: lerp(a.x, b.x, .25 + Math.random() * .35), y: lerp(a.y, b.y, .25 + Math.random() * .35) + (Math.random() - .5) * 30 };
+  return { a, b: fin, llega: completo ? b : null, vida: .08 + Math.random() * .22, edad: 0 };
+}
+
+function cuadro(ahora) {
+  const dt = pausa ? 0 : Math.min(.05, (ahora - previo) / 1000); previo = ahora; tiempo += dt;
+  const ctx = $('fx').getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, $('fx').width, $('fx').height); aplicar(ctx);
+  ctx.globalCompositeOperation = 'lighter';
+  const c = tiempo % CICLO, n = Math.floor(tiempo / CICLO);
+  if (n !== ciclo) { ciclo = n; arcos = []; }
+
+  // 1. Carga: las puntas de la emisora juntan luz y empiezan a tantear el espacio.
+  const carga = c < T_CARGA ? c / T_CARGA : Math.max(0, 1 - (c - T_CARGA) / 1.2);
+  for (const p of forma.puntasI) {
+    luz(ctx, p.x, p.y, 40 + 30 * carga, AURORA, .06 + .22 * carga);
+    chispas(ctx, p.x, p.y, 10 + 10 * carga, Math.floor(4 + 18 * carga), .4 + .5 * carga);
+  }
+
+  // 2. Descarga: hilos eléctricos que saltan entre las puntas y titilan.
+  const enDescarga = c >= T_CARGA && c < T_CARGA + T_DESCARGA;
+  const intensidad = enDescarga ? Math.sin((c - T_CARGA) / T_DESCARGA * Math.PI) : 0;
+  if (dt) {
+    if (c > T_CARGA * .6 && c < T_CARGA && Math.random() < .25 * carga) arcos.push(nuevoArco(false));
+    if (enDescarga && Math.random() < .2 + .6 * intensidad) arcos.push(nuevoArco(true));
+    for (const a of arcos) a.edad += dt;
+    arcos = arcos.filter(a => a.edad < a.vida);
+  }
+  const encendidas = new Set();
+  for (const a of arcos) {
+    const d = Math.hypot(a.b.x - a.a.x, a.b.y - a.a.y);
+    const pts = rayo(a.a, a.b, d * .38, 5);           // se recalcula cada cuadro: el hilo tiembla
+    const vida = 1 - a.edad / a.vida;
+    hilo(ctx, pts, a.llega ? .55 + .45 * vida : .45 * vida);
+    // Ramificaciones finas que se escapan del hilo principal.
+    if (a.llega && Math.random() < .5) {
+      const p = pts[Math.floor(Math.random() * (pts.length - 2)) + 1], ang = Math.random() * 6.283, l = 14 + Math.random() * 30;
+      hilo(ctx, rayo(p, { x: p.x + Math.cos(ang) * l, y: p.y + Math.sin(ang) * l }, l * .5, 3), .35 * vida);
+    }
+    if (a.llega) encendidas.add(a.llega);
+  }
+  luz(ctx, GAP.x, GAP.y, 160, AURORA, .04 + .14 * intensidad);
+
+  // 3. Las puntas de la receptora se encienden donde llega el hilo, y la luz viaja hacia adentro.
+  for (const p of forma.puntasD) {
+    const toca = encendidas.has(p);
+    luz(ctx, p.x, p.y, toca ? 70 : 40, toca ? DESTELLO : AURORA, toca ? .5 : .05 + .1 * intensidad);
+    if (toca) chispas(ctx, p.x, p.y, 16, 22, .9);
+  }
+  const tProp = c - T_CARGA - T_DESCARGA * .5;
+  if (tProp > 0 && tProp < T_PROPAGA) {
+    const f = tProp / T_PROPAGA, e = f * f * (3 - 2 * f), camino = forma.troncoD;
+    const idx = Math.floor((1 - e) * (camino.length - 1));
+    for (let i = camino.length - 1; i >= idx; i -= 3) {
+      const p = camino[i], k = 1 - (i - idx) / (camino.length - idx);
+      chispas(ctx, p.x, p.y, p.w * .45, 3, .45 * k * (1 - f * .5));
+    }
+    const p = camino[idx];
+    luz(ctx, p.x, p.y, p.w * 2, AURORA, .3 * (1 - f * .6)); chispas(ctx, p.x, p.y, p.w * .5, 26, .9 * (1 - f * .5));
+  }
+
+  // Polvo con movimiento browniano (algunos muy cerca y desenfocados).
+  for (const p of polvo) {
+    if (dt && !reducido) {
+      p.vx = p.vx * .92 + (Math.random() - .5) * .9; p.vy = p.vy * .92 + (Math.random() - .5) * .9 - .02;
+      p.x = (p.x + p.vx * dt * 20 + VW) % VW; p.y = (p.y + p.vy * dt * 20 + VH) % VH;
+    }
+    const des = p.prof > .8 ? (p.prof - .8) * 5 : 0;
+    luz(ctx, p.x, p.y, p.rad * (2 + des * 12), DESTELLO, .14 * (1 - des * .6));
+  }
+
+  // Respiración: las dos puntas palpitan, como si buscaran contacto.
+  if (!reducido) {
+    const s1 = Math.sin(tiempo * .9), s2 = Math.sin(tiempo * .8 + 1.3);
+    const dx = Math.sin(tiempo * .05) * 10, dy = Math.cos(tiempo * .04) * 7;
+    $('cIzq').style.transform = `translate(${dx + s1 * 3 + carga * 3}px,${dy}px) scale(${1 + s1 * .004})`;
+    $('cDer').style.transform = `translate(${dx - s2 * 3}px,${dy}px) scale(${1 + s2 * .004})`;
+    $('cFx').style.transform = `translate(${dx}px,${dy}px)`;
+    $('cFondo').style.transform = `translate(${dx * .4}px,${dy * .4}px) scale(1.02)`;
+  }
+  $('grano').style.transform = `translate(${(Math.random() * 100 - 50) | 0}px,${(Math.random() * 100 - 50) | 0}px)`;
+  requestAnimationFrame(cuadro);
+}
+
+(() => {
+  const c = document.createElement('canvas'); c.width = c.height = 220;
+  const x = c.getContext('2d'), img = x.createImageData(220, 220);
+  for (let i = 0; i < img.data.length; i += 4) { const v = Math.random() * 255;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
+  x.putImageData(img, 0, 0); $('grano').style.backgroundImage = `url(${c.toDataURL()})`;
+})();
+$('btnTexto').onclick = (e) => {
+  const o = $('texto').classList.toggle('oculto'); e.target.textContent = o ? 'Mostrar texto' : 'Ocultar texto';
+};
+$('btnPausa').onclick = (e) => { pausa = !pausa; e.target.textContent = pausa ? 'Seguir' : 'Pausar'; };
+let espera; addEventListener('resize', () => { clearTimeout(espera); espera = setTimeout(preparar, 200); });
+preparar();
+requestAnimationFrame(cuadro);
+</script>
+</body>
+</html>

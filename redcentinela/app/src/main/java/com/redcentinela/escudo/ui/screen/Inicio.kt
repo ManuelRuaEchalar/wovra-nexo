@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -77,16 +78,17 @@ fun Inicio(vm: EscudoViewModel, refresco: Int, onDone: () -> Unit) {
     when (paso) {
         0 -> Bienvenida { paso = 1 }
         1 -> Perfil(vm, onBack = { paso = 0 }) { paso = 2 }
-        2 -> Bloqueo(refresco, onBack = { paso = 1 }) { paso = 3 }
-        3 -> PermisosPaso(refresco, onBack = { paso = 2 }) { paso = 4 }
-        4 -> Column(Modifier.fillMaxSize().padding(horizontal = 24.dp).padding(top = 12.dp, bottom = 18.dp)) {
-            CabeceraPaso(3, 4) { paso = 3 }
+        2 -> Cuenta(vm, onBack = { paso = 1 }) { paso = 3 }
+        3 -> Bloqueo(refresco, onBack = { paso = 2 }) { paso = 4 }
+        4 -> PermisosPaso(refresco, onBack = { paso = 3 }) { paso = 5 }
+        5 -> Column(Modifier.fillMaxSize().padding(horizontal = 24.dp).padding(top = 12.dp, bottom = 18.dp)) {
+            CabeceraPaso(3, 4) { paso = 4 }
             Spacer(Modifier.height(20.dp))
             GuardianContenido(vm, Modifier.weight(1f))
-            BotonPrincipal("Continuar") { paso = 5 }
+            BotonPrincipal("Continuar") { paso = 6 }
         }
         else -> Column(Modifier.fillMaxSize().padding(horizontal = 24.dp).padding(top = 12.dp, bottom = 18.dp)) {
-            CabeceraPaso(4, 4) { paso = 4 }
+            CabeceraPaso(4, 4) { paso = 5 }
             Spacer(Modifier.height(20.dp))
             CirculoArmar(vm, Modifier.weight(1f))
             BotonPrincipal("Activar Escudo", enabled = Permisos.ubicacion(LocalContext.current)) {
@@ -116,7 +118,7 @@ private fun Bienvenida(onStart: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Halo(Modifier.size(width = 34.dp, height = 24.dp), color = Destello, centro = Destello)
-                Text("Red Centinela", fontFamily = Sora, fontSize = 16.sp, color = Color.White)
+                Text("Dendra", fontFamily = Sora, fontSize = 16.sp, color = Color.White)
             }
         }
         Spacer(Modifier.height(28.dp))
@@ -152,6 +154,73 @@ private fun Perfil(vm: EscudoViewModel, onBack: () -> Unit, onNext: () -> Unit) 
             "Número de este celular (opcional)", numero, { numero = it.take(16) },
             ayuda = "+591 7XXXXXXX", teclado = KeyboardType.Phone
         )
+    }
+}
+
+// --- Cuenta (panel web) ----------------------------------------------------------
+
+/**
+ * La cuenta se crea al configurar la app: con ella el dueño entra al panel
+ * web desde cualquier computadora si pierde el celular. La contraseña no
+ * sale del teléfono (ver data/rescue/Rescue.kt).
+ */
+@Composable
+private fun Cuenta(vm: EscudoViewModel, onBack: () -> Unit, onNext: () -> Unit) {
+    val creada by vm.rescueEmail.collectAsStateWithLifecycle()
+    val trabajando by vm.rescueWorking.collectAsStateWithLifecycle()
+    var correo by rememberSaveable { mutableStateOf(creada ?: "") }
+    var clave by remember { mutableStateOf("") }
+    var clave2 by remember { mutableStateOf("") }
+    var servidor by rememberSaveable { mutableStateOf(vm.config.rewardServerUrl) }
+    val sinServidor = vm.config.rewardServerUrl.isBlank()
+    val valida = creada != null || (correo.contains('@') && clave.length >= 8 && clave == clave2)
+
+    Paso(
+        cabecera = { com.redcentinela.escudo.ui.component.CabeceraSimple("Tu cuenta", onBack = onBack) },
+        titulo = if (creada != null) "Tu cuenta está lista" else "Crea tu cuenta",
+        texto = if (creada != null) {
+            "Si pierdes el celular, entra al panel web con $creada desde cualquier computadora: ves dónde está, " +
+                "lo reportas o lo haces sonar, aunque no tengas a nadie en tu círculo."
+        } else {
+            "Con tu correo y una contraseña podrás entrar al panel web desde cualquier computadora si pierdes " +
+                "el celular: ver dónde está, reportarlo o hacerlo sonar, aunque no tengas a nadie en tu círculo."
+        },
+        boton = when {
+            creada != null -> "Continuar"
+            trabajando -> "Creando tu cuenta…"
+            else -> "Crear cuenta"
+        },
+        habilitado = valida && !trabajando,
+        onBoton = {
+            when {
+                creada != null -> onNext()
+                else -> {
+                    if (sinServidor && servidor.isNotBlank()) vm.config.rewardServerUrl = servidor
+                    vm.setUpRescue(correo, clave) { clave = ""; clave2 = ""; onNext() }
+                }
+            }
+        }
+    ) {
+        if (creada == null) {
+            Campo("Correo", correo, { correo = it.trim() }, ayuda = "tu@correo.com", teclado = KeyboardType.Email)
+            Campo("Contraseña (mínimo 8 caracteres)", clave, { clave = it }, oculto = true)
+            Campo("Repite la contraseña", clave2, { clave2 = it }, oculto = true)
+            if (clave2.isNotEmpty() && clave != clave2) {
+                Text("Las contraseñas no coinciden.", style = Tipo.Nota, color = com.redcentinela.escudo.ui.theme.AmbarTexto)
+            }
+            if (sinServidor) {
+                // Solo mientras el servidor no tenga dirección fija (versión de desarrollo).
+                Campo("Servidor (versión de prueba)", servidor, { servidor = it.trim() }, ayuda = "https://…", teclado = KeyboardType.Uri)
+            }
+            Tarjeta(relleno = 16.dp) {
+                Column(Modifier.padding(vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Tu contraseña no sale de este celular.", style = Tipo.Nota)
+                    Text("Nuestro servidor guarda tu cuenta cifrada y no puede leerla.", style = Tipo.Nota)
+                    Text("Anótala: si la olvidas, se crea una nueva desde Ajustes.", style = Tipo.Nota)
+                }
+            }
+            com.redcentinela.escudo.ui.component.Enlace("Sin internet ahora: crearla después en Ajustes", color = Texto2) { onNext() }
+        }
     }
 }
 

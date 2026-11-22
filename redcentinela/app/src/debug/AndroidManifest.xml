@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Solo en compilaciones de depuración: permite HTTP hacia el servidor de recompensas local. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application
+        android:networkSecurityConfig="@xml/red_desarrollo"
+        tools:ignore="UnusedAttribute" />
+</manifest>

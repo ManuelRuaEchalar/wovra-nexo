@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.redcentinela.escudo.data.ble.TagLink
 import com.redcentinela.escudo.data.circle.Card
+import com.redcentinela.escudo.data.reward.Reward
 import com.redcentinela.escudo.data.shutdown.FakeShutdownService
 import com.redcentinela.escudo.data.shutdown.SignalBus
 import com.redcentinela.escudo.domain.model.AlertReason
@@ -59,6 +60,15 @@ class EscudoViewModel(app: Application) : AndroidViewModel(app) {
     private val _proximity = MutableStateFlow<ProximityReading?>(null)
     val proximity: StateFlow<ProximityReading?> = _proximity.asStateFlow()
 
+    // --- Recompensa garantizada (Stellar) ---
+    val reward: StateFlow<Reward?> = locator.rewards.reward
+    val rewardWorking: StateFlow<Boolean> = locator.rewards.working
+    val rewardProblem: StateFlow<String?> = locator.rewards.problem
+    fun confirmReward() = locator.rewards.confirm()
+    fun rejectRewardClaim() = locator.rewards.reject()
+    fun cancelReward() = locator.rewards.cancel()
+    fun dismissReward() = locator.rewards.dismiss()
+
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 4)
     /** Mensajes breves para el usuario (resultado de una acción). */
     val messages: SharedFlow<String> = _messages.asSharedFlow()
@@ -77,6 +87,48 @@ class EscudoViewModel(app: Application) : AndroidViewModel(app) {
 
     fun say(text: String) {
         _messages.tryEmit(text)
+    }
+
+    // --- Ayudar a la red (micropagos) ------------------------------------------
+
+    private val _nodeStats = MutableStateFlow<org.json.JSONObject?>(null)
+    val nodeStats: StateFlow<org.json.JSONObject?> = _nodeStats.asStateFlow()
+
+    fun refreshNodeStats() {
+        viewModelScope.launch { _nodeStats.value = locator.nodeStats() }
+    }
+
+    // --- Panel web (cuenta de rescate) ---------------------------------------
+
+    private val _rescueEmail = MutableStateFlow(locator.rescue.email)
+    val rescueEmail: StateFlow<String?> = _rescueEmail.asStateFlow()
+    private val _rescueWorking = MutableStateFlow(false)
+    val rescueWorking: StateFlow<Boolean> = _rescueWorking.asStateFlow()
+
+    fun setUpRescue(email: String, password: String, done: () -> Unit) {
+        if (_rescueWorking.value) return
+        _rescueWorking.value = true
+        viewModelScope.launch {
+            runCatching { locator.rescue.setUp(email, password) }
+                .onSuccess {
+                    _rescueEmail.value = locator.rescue.email
+                    say("Listo: entra al panel web con ${locator.rescue.email}.")
+                    done()
+                }
+                .onFailure { say(it.message ?: "No se pudo guardar la cuenta del panel") }
+            _rescueWorking.value = false
+        }
+    }
+
+    fun removeRescue() {
+        if (_rescueWorking.value) return
+        _rescueWorking.value = true
+        viewModelScope.launch {
+            runCatching { locator.rescue.remove() }
+                .onSuccess { _rescueEmail.value = null; say("Cuenta del panel web eliminada.") }
+                .onFailure { say(it.message ?: "No se pudo eliminar la cuenta") }
+            _rescueWorking.value = false
+        }
     }
 
     // --- Escudo ------------------------------------------------------------
@@ -116,6 +168,15 @@ class EscudoViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Muestra el apagado simulado ahora, sin esperar al botón de encendido. */
+    /** Prueba "hacer sonar": sirena, linterna y pantalla blanca durante unos segundos. */
+    fun testRing() {
+        val app = getApplication<Application>()
+        com.redcentinela.escudo.data.alarm.Alarm.ring(app, TEST_RING_SECONDS, flash = true)
+        app.startActivity(
+            Intent(app, com.redcentinela.escudo.ui.SonandoActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    }
+
     fun testFakeShutdown() {
         val service = FakeShutdownService.instance
         if (service != null) {
@@ -298,3 +359,5 @@ class EscudoViewModel(app: Application) : AndroidViewModel(app) {
         const val SEEK_RETRY_MS = 5_000L
     }
 }
+
+private const val TEST_RING_SECONDS = 6

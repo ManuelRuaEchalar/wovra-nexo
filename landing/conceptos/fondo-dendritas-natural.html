@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dendra · Concepto de fondo natural: dendritas al microscopio</title>
+<style>
+  /*
+   * Concepto natural: una sola toma continua de microscopía de campo claro,
+   * como las tinciones de Golgi de Cajal. Luz transmitida, neuronas piramidales
+   * teñidas, cambio lento de foco, partículas con movimiento browniano y un
+   * reflejo cálido que cruza la sinapsis. Nada de neón.
+   */
+  @font-face { font-family: Sora; src: url(../borradores/assets/sora.ttf); }
+  @font-face { font-family: Hanken; src: url(../borradores/assets/hanken_grotesk.ttf); }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1c140b; }
+  .escena { position: fixed; inset: 0; overflow: hidden; }
+  #luzFondo { position: absolute; inset: -4%; width: 108%; height: 108%; }
+  .capa { position: absolute; inset: -6%; mix-blend-mode: multiply; will-change: transform, filter; }
+  .capa canvas, #fx { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #fxCapa { position: absolute; inset: -6%; will-change: transform; }
+  .aberracion { position: absolute; inset: 0; pointer-events: none; mix-blend-mode: soft-light;
+    background: radial-gradient(140% 110% at 50% 50%, transparent 55%, #4a6aa833 80%, #a8603a44 100%); }
+  .vineta { position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(120% 95% at 52% 48%, transparent 40%, #2a1a0a55 72%, #120b05e6 100%); }
+  .grano { position: absolute; inset: -50%; pointer-events: none; opacity: .22; mix-blend-mode: overlay; }
+
+  .texto { position: fixed; left: 7vw; bottom: 12vh; max-width: 640px; color: #fbf6ea; transition: opacity .6s; }
+  .texto::before { content: ''; position: absolute; z-index: -1; inset: -45% -35% -45% -45%;
+    background: radial-gradient(closest-side, #1a1108b3, transparent); }
+  .texto.oculto { opacity: 0; }
+  .eyebrow { font: 600 12px/1 Hanken, sans-serif; letter-spacing: .18em; text-transform: uppercase; color: #f3dfb0; margin: 0 0 18px; }
+  h1 { font: 300 clamp(56px, 8vw, 120px)/.95 Sora, sans-serif; letter-spacing: -.06em; margin: 0; }
+  .lema { font: 400 clamp(17px, 1.6vw, 21px)/1.5 Hanken, sans-serif; color: #efe5cf; margin: 22px 0 0; max-width: 46ch; }
+  .controles { position: fixed; right: 20px; bottom: 18px; display: flex; gap: 8px; }
+  .controles button { font: 600 12px Hanken, sans-serif; color: #f6ecd6; background: #2a1d0f99;
+    border: 1px solid #f3dfb044; border-radius: 99px; padding: 8px 14px; cursor: pointer; backdrop-filter: blur(6px); }
+  .controles button:hover { border-color: #f3dfb0aa; }
+</style>
+</head>
+<body>
+<div class="escena">
+  <canvas id="luzFondo"></canvas>
+  <div class="capa" id="lejos"><canvas id="cLejos"></canvas></div>
+  <div class="capa" id="medio"><canvas id="cMedio"></canvas></div>
+  <div id="fxCapa"><canvas id="fx"></canvas></div>
+  <div class="capa" id="cerca"><canvas id="cCerca"></canvas></div>
+  <div class="aberracion"></div>
+  <div class="vineta"></div>
+  <div class="grano" id="grano"></div>
+</div>
+
+<div class="texto" id="texto">
+  <p class="eyebrow">Sucre, Bolivia · Red de pruebas</p>
+  <h1>Dendra</h1>
+  <p class="lema">Como las dendritas de una neurona, cada celular recibe la señal del otro. Ninguno está solo.</p>
+</div>
+<div class="controles">
+  <button id="btnPaleta">Paleta: Ámbar</button>
+  <button id="btnTexto">Ocultar texto</button>
+  <button id="btnPausa">Pausar</button>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Utilidades
+// ---------------------------------------------------------------------------
+function semilla(a) {
+  return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+const lerp = (a, b, t) => a + (b - a) * t;
+const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DPR = Math.min(devicePixelRatio || 1, 1.5);
+const VW = 1600, VH = 900;
+
+// Ruido suave 1D determinista (para irregularidad de bordes y grosores).
+function ruido1(r) {
+  const v = Array.from({ length: 64 }, r);
+  return (x) => { const i = Math.floor(x) & 63, f = x - Math.floor(x), s = f * f * (3 - 2 * f);
+    return lerp(v[i], v[(i + 1) & 63], s) * 2 - 1; };
+}
+
+// ---------------------------------------------------------------------------
+// Paletas: luz transmitida y tinte
+// ---------------------------------------------------------------------------
+const PALETAS = {
+  ambar: {
+    nombre: 'Ámbar',
+    centro: [246, 232, 198], medio: [214, 182, 120], borde: [120, 84, 38],
+    manchas: [150, 100, 40], tinte: [38, 22, 10], tinteClaro: [96, 62, 30],
+    reflejo: '255,236,190',
+  },
+  bosque: {
+    nombre: 'Bosque',
+    centro: [234, 240, 220], medio: [186, 204, 164], borde: [70, 92, 64],
+    manchas: [90, 120, 70], tinte: [16, 42, 34], tinteClaro: [44, 86, 66],
+    reflejo: '225,255,232',
+  },
+};
+let paleta = PALETAS.ambar;
+const rgb = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
+// ---------------------------------------------------------------------------
+// Morfología: neuronas piramidales
+// ---------------------------------------------------------------------------
+function crecer(r, x, y, ang, w, largo, prof, ramas, opts = {}) {
+  const paso = 4;
+  const pts = [{ x, y, w }];
+  let a = ang;
+  const n = Math.floor(largo / paso);
+  const curva = (r() - .5) * .025;
+  for (let i = 0; i < n; i++) {
+    let ruidoA = .36;
+    if (opts.hacia) {
+      const dist = Math.hypot(opts.hacia.x - x, opts.hacia.y - y);
+      const cerca = 1 - Math.min(1, dist / 220);
+      ruidoA *= .3 + .7 * (1 - cerca);
+      let dif = Math.atan2(opts.hacia.y - y, opts.hacia.x - x) - a;
+      while (dif > Math.PI) dif -= 2 * Math.PI; while (dif < -Math.PI) dif += 2 * Math.PI;
+      a += dif * ((opts.fuerza ?? .05) + cerca * .45);
+    }
+    if (opts.subir) a += (opts.subir - a) * .02; // la dendrita apical tiende a subir
+    a += (r() - .5) * ruidoA + curva;
+    x += Math.cos(a) * paso; y += Math.sin(a) * paso;
+    w = Math.max(w * (opts.afinar ?? .978), .5);
+    pts.push({ x, y, w });
+    if (opts.hacia && Math.hypot(opts.hacia.x - x, opts.hacia.y - y) < 8) break;
+    if (prof > 0 && i > 4 && w > .8 && r() < (opts.dividir ?? .07)) {
+      const lado = r() < .5 ? -1 : 1;
+      crecer(r, x, y, a + lado * (.5 + r() * .6), w * (.5 + r() * .2), largo * (.3 + r() * .35), prof - 1, ramas);
+      a -= lado * (.1 + r() * .15);
+    }
+  }
+  ramas.push(pts);
+  return pts;
+}
+
+/** Neurona piramidal: soma triangular, dendrita apical hacia arriba, basales hacia abajo. */
+function piramidal(r, cx, cy, tam, inclin, opts = {}) {
+  const ramas = [];
+  const arriba = -Math.PI / 2 + inclin;
+  // Apical: gruesa, larga, con oblicuas.
+  crecer(r, cx + Math.cos(arriba) * tam, cy + Math.sin(arriba) * tam, arriba, tam * .45, tam * 17, 6, ramas,
+    { subir: arriba, afinar: .99, dividir: .075 });
+  // Basales: varias, hacia abajo y a los lados.
+  const nb = 5 + Math.floor(r() * 3);
+  for (let i = 0; i < nb; i++) {
+    const a = arriba + Math.PI + (i / (nb - 1) - .5) * 2.6 + (r() - .5) * .3;
+    crecer(r, cx + Math.cos(a) * tam * .7, cy + Math.sin(a) * tam * .7, a, tam * (.24 + r() * .12), tam * (6 + r() * 5), 5, ramas);
+  }
+  let camino = null;
+  if (opts.hacia) {
+    const a = Math.atan2(opts.hacia.y - cy, opts.hacia.x - cx);
+    camino = crecer(r, cx + Math.cos(a) * tam * .7, cy + Math.sin(a) * tam * .7, a, tam * .17, 1500, 0, ramas,
+      { hacia: opts.hacia, afinar: .997 });
+  }
+  // Soma: triángulo redondeado con borde irregular.
+  const contorno = [];
+  for (let i = 0; i < 36; i++) {
+    const t = i / 36 * Math.PI * 2;
+    const tri = 1 + .32 * Math.cos(3 * (t - arriba));            // forma triangular
+    const rad = tam * tri * (.88 + r() * .2);
+    contorno.push({ x: cx + Math.cos(t) * rad, y: cy + Math.sin(t) * rad * .92 });
+  }
+  return { cx, cy, tam, ramas, contorno, camino };
+}
+
+// ---------------------------------------------------------------------------
+// Dibujo como tinte (multiplicar sobre luz transmitida)
+// ---------------------------------------------------------------------------
+/** Contorno irregular de una rama: grosor con ruido y varicosidades (engrosamientos). */
+function contornoRama(pts, r) {
+  const nb = ruido1(r), nv = ruido1(r);
+  const izq = [], der = [];
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i], q = pts[Math.min(i + 1, pts.length - 1)], o = pts[Math.max(i - 1, 0)];
+    const ang = Math.atan2(q.y - o.y, q.x - o.x) + Math.PI / 2;
+    // Varicosidades: cuentas sutiles en las ramas finas, como en una tinción real.
+    const vari = p.w < 2.2 ? Math.max(0, nv(i * .55)) * .9 : 0;
+    const ancho = p.w * (1 + .22 * nb(i * .3) + vari) * .5;
+    izq.push({ x: p.x + Math.cos(ang) * ancho * (1 + .15 * nb(i * .9 + 9)), y: p.y + Math.sin(ang) * ancho });
+    der.push({ x: p.x - Math.cos(ang) * ancho, y: p.y - Math.sin(ang) * ancho * (1 + .15 * nb(i * .9 + 3)) });
+  }
+  return izq.concat(der.reverse());
+}
+
+function rellenar(ctx, poli) {
+  ctx.beginPath();
+  poli.forEach((p, i) => {
+    const s = poli[(i + 1) % poli.length], mx = (p.x + s.x) / 2, my = (p.y + s.y) / 2;
+    i === 0 ? ctx.moveTo(mx, my) : ctx.quadraticCurveTo(p.x, p.y, mx, my);
+  });
+  ctx.closePath(); ctx.fill();
+}
+
+function pintarNeurona(ctx, n, r, intensidad = 1) {
+  ctx.globalCompositeOperation = 'multiply';
+  for (const pts of n.ramas) {
+    // Las partes finas absorben menos luz: más claras y translúcidas.
+    const grosor = pts.reduce((s, p) => s + p.w, 0) / pts.length;
+    const k = Math.min(1, grosor / 3);
+    ctx.fillStyle = rgb(paleta.tinteClaro.map((c, i) => lerp(c, paleta.tinte[i], k)), (.55 + .4 * k) * intensidad);
+    rellenar(ctx, contornoRama(pts, r));
+    // Espinas: brotes cortos con cabeza.
+    for (let i = 3; i < pts.length - 1; i += 2) {
+      const p = pts[i];
+      if (p.w > 3 || r() > .6) continue;
+      const q = pts[i + 1];
+      const ang = Math.atan2(q.y - p.y, q.x - p.x) + (r() < .5 ? -1 : 1) * (.9 + r() * 1.1);
+      const l = 1.5 + r() * 3.5, ex = p.x + Math.cos(ang) * l, ey = p.y + Math.sin(ang) * l;
+      const mx = (p.x + ex) / 2 + (r() - .5) * 1.2, my = (p.y + ey) / 2 + (r() - .5) * 1.2;
+      ctx.strokeStyle = rgb(paleta.tinte, (.3 + r() * .35) * intensidad); ctx.lineWidth = .35 + r() * .35;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.quadraticCurveTo(mx, my, ex, ey); ctx.stroke();
+      if (r() < .7) {
+        ctx.fillStyle = rgb(paleta.tinte, (.35 + r() * .4) * intensidad);
+        ctx.beginPath(); ctx.ellipse(ex, ey, .45 + r() * .7, .35 + r() * .5, ang, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  }
+  if (n.sinSoma) { ctx.globalCompositeOperation = 'source-over'; return; }
+  // Soma: más denso al centro, con un leve halo.
+  const g = ctx.createRadialGradient(n.cx, n.cy, 1, n.cx, n.cy, n.tam * 1.4);
+  g.addColorStop(0, rgb(paleta.tinte, .95 * intensidad));
+  g.addColorStop(.7, rgb(paleta.tinte, .85 * intensidad));
+  g.addColorStop(1, rgb(paleta.tinteClaro, .3 * intensidad));
+  ctx.fillStyle = g; rellenar(ctx, n.contorno);
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+/** Neuropilo: fibras finas entrecruzadas que llenan el fondo de una tinción real. */
+function neuropilo(r, n, largoMin, largoMax, grosor) {
+  const ramas = [];
+  for (let i = 0; i < n; i++) {
+    crecer(r, r() * VW, r() * VH, r() * Math.PI * 2, grosor * (.6 + r() * .8), largoMin + r() * (largoMax - largoMin), 1, ramas,
+      { afinar: .997, dividir: .015 });
+  }
+  return { ramas, sinSoma: true };
+}
+
+// ---------------------------------------------------------------------------
+// Luz del microscopio: campo iluminado desigual con manchas y polvo
+// ---------------------------------------------------------------------------
+function pintarLuz(canvas, r) {
+  const ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
+  const g = ctx.createRadialGradient(W * .54, H * .46, 0, W * .54, H * .46, Math.max(W, H) * .75);
+  g.addColorStop(0, rgb(paleta.centro)); g.addColorStop(.55, rgb(paleta.medio)); g.addColorStop(1, rgb(paleta.borde));
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // Manchas grandes y suaves: el fondo de un portaobjetos nunca es parejo.
+  ctx.globalCompositeOperation = 'multiply';
+  for (let i = 0; i < 90; i++) {
+    const x = r() * W, y = r() * H, rad = (40 + r() * 260) * DPR;
+    const m = ctx.createRadialGradient(x, y, 0, x, y, rad);
+    m.addColorStop(0, rgb(paleta.manchas, .05 + r() * .07)); m.addColorStop(1, rgb(paleta.manchas, 0));
+    ctx.fillStyle = m; ctx.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+  }
+  // Polvo y restos finos del preparado.
+  for (let i = 0; i < 900; i++) {
+    ctx.fillStyle = rgb(paleta.tinteClaro, .05 + r() * .12);
+    ctx.beginPath(); ctx.arc(r() * W, r() * H, (.3 + r() * 1.3) * DPR, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'screen';
+  const brillo = ctx.createRadialGradient(W * .56, H * .42, 0, W * .56, H * .42, W * .35);
+  brillo.addColorStop(0, 'rgba(255,250,235,0.35)'); brillo.addColorStop(1, 'rgba(255,250,235,0)');
+  ctx.fillStyle = brillo; ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+// ---------------------------------------------------------------------------
+// Escena
+// ---------------------------------------------------------------------------
+const $ = (id) => document.getElementById(id);
+const lienzos = { luz: $('luzFondo'), lejos: $('cLejos'), medio: $('cMedio'), fx: $('fx'), cerca: $('cCerca') };
+let escala = 1, ox = 0, oy = 0, escena = null;
+
+function aplicar(ctx) { ctx.setTransform(DPR * escala, 0, 0, DPR * escala, DPR * ox, DPR * oy); }
+function limpiar(c) { const x = c.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height); return x; }
+
+function preparar() {
+  const box = $('medio').getBoundingClientRect();
+  for (const c of Object.values(lienzos)) {
+    const b = c.getBoundingClientRect();
+    c.width = Math.round(b.width * DPR); c.height = Math.round(b.height * DPR);
+  }
+  escala = Math.max(box.width / VW, box.height / VH);
+  ox = (box.width - VW * escala) / 2; oy = (box.height - VH * escala) / 2;
+
+  const r = semilla(2026);
+  const sinapsis = { x: 930, y: 420 };
+  const A = piramidal(r, 540, 720, 24, .3, { hacia: { x: sinapsis.x - 6, y: sinapsis.y + 4 } });
+  const B = piramidal(r, 1250, 470, 21, -.2, { hacia: { x: sinapsis.x + 6, y: sinapsis.y - 3 } });
+  const lejanas = [
+    piramidal(r, 200, 420, 18, -.2), piramidal(r, 1460, 860, 19, .3),
+    piramidal(r, 820, 200, 15, .1), piramidal(r, 1080, 820, 16, -.4),
+    piramidal(r, 420, 120, 14, .25), piramidal(r, 1500, 220, 16, -.1),
+    piramidal(r, 700, 520, 13, .5), piramidal(r, 60, 820, 17, .1),
+    neuropilo(r, 70, 250, 900, 1.1),
+  ];
+  const fibras = neuropilo(semilla(404), 26, 200, 700, .8);
+  const cercanas = [piramidal(semilla(91), 150, 980, 30, .6)];
+
+  // Partículas: vesículas o gotas que refractan, con movimiento browniano.
+  const particulas = Array.from({ length: 46 }, () => ({
+    x: r() * VW, y: r() * VH, rad: 1.5 + r() * 5.5, vx: 0, vy: 0, prof: r(),
+  }));
+  escena = { A, B, caminoB: B.camino.slice().reverse(), sinapsis, lejanas, cercanas, fibras, particulas, r };
+  pintarTodo();
+}
+
+function pintarTodo() {
+  const { A, B, lejanas, cercanas, fibras } = escena;
+  pintarLuz(lienzos.luz, semilla(5));
+  let ctx = limpiar(lienzos.lejos); aplicar(ctx);
+  lejanas.forEach((n, i) => pintarNeurona(ctx, n, semilla(30 + i), n.sinSoma ? .35 : .5));
+  ctx = limpiar(lienzos.medio); aplicar(ctx);
+  pintarNeurona(ctx, fibras, semilla(9), .5);
+  [A, B].forEach((n, i) => pintarNeurona(ctx, n, semilla(10 + i), 1));
+  ctx = limpiar(lienzos.cerca); aplicar(ctx);
+  cercanas.forEach((n, i) => pintarNeurona(ctx, n, semilla(50 + i), .6));
+}
+
+// ---------------------------------------------------------------------------
+// Animación
+// ---------------------------------------------------------------------------
+const CICLO = 11, T_A = 4.2, T_SALTO = .9, T_B = 3.4;
+let t0 = performance.now(), pausa = false, tPausa = 0, previo = 0;
+
+function puntoEn(c, f) {
+  const i = Math.min(c.length - 1, Math.max(0, f * (c.length - 1)));
+  const a = c[Math.floor(i)], b = c[Math.ceil(i)], k = i - Math.floor(i);
+  return { x: lerp(a.x, b.x, k), y: lerp(a.y, b.y, k) };
+}
+
+function luzSuave(ctx, x, y, rad, alfa) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, rad);
+  g.addColorStop(0, `rgba(${paleta.reflejo},${alfa})`); g.addColorStop(1, `rgba(${paleta.reflejo},0)`);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.fill();
+}
+
+/** Una gota o vesícula vista con luz transmitida: borde oscuro, centro claro y un brillo. */
+function vesicula(ctx, x, y, rad, desenfoque) {
+  const a = 1 - desenfoque * .6;
+  const g = ctx.createRadialGradient(x - rad * .25, y - rad * .3, rad * .05, x, y, rad);
+  g.addColorStop(0, `rgba(255,252,240,${.5 * a})`);
+  g.addColorStop(.62, `rgba(255,250,235,${.08 * a})`);
+  g.addColorStop(.86, rgb(paleta.tinteClaro, .35 * a));
+  g.addColorStop(1, rgb(paleta.tinteClaro, 0));
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, rad * (1 + desenfoque * 1.8), 0, Math.PI * 2); ctx.fill();
+}
+
+function cuadro(ahora) {
+  const t = ((pausa ? tPausa : ahora) - t0) / 1000;
+  const dt = Math.min(.05, Math.max(0, t - previo)); previo = t;
+  const { A, caminoB, sinapsis, particulas } = escena;
+  const ctx = limpiar(lienzos.fx); aplicar(ctx);
+
+  // Reflejo cálido que recorre el axón, cruza la sinapsis y sigue por la dendrita.
+  ctx.globalCompositeOperation = 'screen';
+  const c = t % CICLO;
+  if (c < T_A) {
+    const f = c / T_A, e = f * f * (3 - 2 * f), p = puntoEn(A.camino, e);
+    luzSuave(ctx, p.x, p.y, 26, .28); luzSuave(ctx, p.x, p.y, 7, .45);
+  } else if (c < T_A + T_SALTO) {
+    const f = (c - T_A) / T_SALTO;
+    luzSuave(ctx, sinapsis.x, sinapsis.y, 18 + 60 * f, .5 * Math.sin(f * Math.PI));
+  } else if (c < T_A + T_SALTO + T_B) {
+    const f = (c - T_A - T_SALTO) / T_B, e = f * f * (3 - 2 * f), p = puntoEn(caminoB, e);
+    luzSuave(ctx, p.x, p.y, 24, .25); luzSuave(ctx, p.x, p.y, 6, .4);
+  }
+  luzSuave(ctx, sinapsis.x, sinapsis.y, 12, .18 + .08 * Math.sin(t * 1.7));
+
+  // Movimiento browniano: pequeños empujones al azar, con amortiguación.
+  ctx.globalCompositeOperation = 'source-over';
+  for (const p of particulas) {
+    if (!pausa && !reducido) {
+      p.vx = p.vx * .9 + (Math.random() - .5) * 18 * dt;
+      p.vy = p.vy * .9 + (Math.random() - .5) * 18 * dt - .6 * dt; // leve corriente hacia arriba
+      p.x = (p.x + p.vx + VW) % VW; p.y = (p.y + p.vy + VH) % VH;
+    }
+    vesicula(ctx, p.x, p.y, p.rad, Math.abs(p.prof - enfoque(t)) );
+  }
+
+  // Cámara: deriva de la platina y enfoque que pasa lentamente de un plano a otro.
+  if (!reducido) {
+    const dx = Math.sin(t * .04) * 18, dy = Math.cos(t * .033) * 12, s = 1 + Math.sin(t * .025) * .012;
+    const foco = enfoque(t); // 0 = lejos en foco, 1 = cerca en foco; el medio casi siempre nítido
+    $('lejos').style.transform = `translate(${dx * .4}px,${dy * .4}px) scale(${s})`;
+    $('medio').style.transform = `translate(${dx}px,${dy}px) scale(${s})`;
+    $('fxCapa').style.transform = `translate(${dx}px,${dy}px) scale(${s})`;
+    $('cerca').style.transform = `translate(${dx * 2}px,${dy * 2}px) scale(${s * 1.02})`;
+    $('lejos').style.filter = `blur(${(1.5 + foco * 6).toFixed(2)}px)`;
+    $('medio').style.filter = `blur(${(Math.abs(foco - .45) * 1.6).toFixed(2)}px)`;
+    $('cerca').style.filter = `blur(${(6 + (1 - foco) * 14).toFixed(2)}px)`;
+  }
+  $('grano').style.transform = `translate(${(Math.random() * 100 - 50) | 0}px,${(Math.random() * 100 - 50) | 0}px)`;
+  if (!pausa) requestAnimationFrame(cuadro);
+}
+
+/** Plano de foco entre 0 y 1: oscila muy despacio, como quien ajusta el microscopio. */
+const enfoque = (t) => .45 + .3 * Math.sin(t * .09) * Math.sin(t * .031 + 1);
+
+// Grano fino (una vez).
+(() => {
+  const c = document.createElement('canvas'); c.width = c.height = 220;
+  const x = c.getContext('2d'), img = x.createImageData(220, 220);
+  for (let i = 0; i < img.data.length; i += 4) { const v = Math.random() * 255;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
+  x.putImageData(img, 0, 0); $('grano').style.backgroundImage = `url(${c.toDataURL()})`;
+})();
+
+$('btnPaleta').onclick = (e) => {
+  paleta = paleta === PALETAS.ambar ? PALETAS.bosque : PALETAS.ambar;
+  e.target.textContent = `Paleta: ${paleta.nombre}`;
+  pintarTodo();
+};
+$('btnTexto').onclick = (e) => {
+  const o = $('texto').classList.toggle('oculto'); e.target.textContent = o ? 'Mostrar texto' : 'Ocultar texto';
+};
+$('btnPausa').onclick = (e) => {
+  pausa = !pausa;
+  if (pausa) { tPausa = performance.now(); e.target.textContent = 'Seguir'; }
+  else { t0 += performance.now() - tPausa; e.target.textContent = 'Pausar'; requestAnimationFrame(cuadro); }
+};
+let espera; addEventListener('resize', () => { clearTimeout(espera); espera = setTimeout(preparar, 200); });
+preparar();
+requestAnimationFrame(cuadro);
+</script>
+</body>
+</html>

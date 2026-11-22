@@ -6,11 +6,14 @@ import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.redcentinela.escudo.data.alarm.Alarm
+import com.redcentinela.escudo.data.shutdown.FakeShutdownService
 import com.redcentinela.escudo.data.ble.BleCodec
 import com.redcentinela.escudo.data.ble.BleHub
 import com.redcentinela.escudo.data.ble.TagLink
 import com.redcentinela.escudo.data.circle.CircleStore
 import com.redcentinela.escudo.data.circle.CircleSync
+import com.redcentinela.escudo.data.circle.ForwardQueue
+import com.redcentinela.escudo.data.rescue.RescueManager
 import com.redcentinela.escudo.data.comm.BleCommLink
 import com.redcentinela.escudo.data.comm.LocalCommLink
 import com.redcentinela.escudo.data.comm.RelayCommLink
@@ -18,6 +21,9 @@ import com.redcentinela.escudo.data.comm.SmsCommLink
 import com.redcentinela.escudo.data.finder.ToneFeedbackEmitter
 import com.redcentinela.escudo.data.location.FusedLocationTracker
 import com.redcentinela.escudo.data.net.RelayClient
+import com.redcentinela.escudo.data.reward.RewardClient
+import com.redcentinela.escudo.data.reward.RewardManager
+import com.redcentinela.escudo.data.reward.RewardStore
 import com.redcentinela.escudo.data.shutdown.AndroidBatteryGauge
 import com.redcentinela.escudo.data.shutdown.AndroidSystemSignalSource
 import com.redcentinela.escudo.data.storage.EncryptedLocationLog
@@ -63,7 +69,12 @@ class ServiceLocator private constructor(context: Context) {
     val locationLog: LocationLog = EncryptedLocationLog(appContext)
     val circle = CircleStore(securePrefs("escudo_circulo"))
     val relay = RelayClient(appContext) { config.relayUrl }
-    val sync = CircleSync(config, circle, relay, appScope, notifier)
+    private val forwardPrefs = securePrefs("escudo_reenvio")
+    val forwardQueue = ForwardQueue(
+        load = { forwardPrefs.getString("cola", null) },
+        save = { forwardPrefs.edit().putString("cola", it).apply() }
+    )
+    val sync = CircleSync(config, circle, relay, appScope, notifier, forwardQueue)
     val ble = BleHub(appContext, appScope)
     val tag = TagLink(appContext)
     val guardian = GuardianWatch(ble, circle)
@@ -117,8 +128,38 @@ class ServiceLocator private constructor(context: Context) {
         }
     )
 
+    private val serverClient = RewardClient { config.rewardServerUrl }
+
+    /** Cuenta de rescate para el panel web (seguir y controlar este celular desde un navegador). */
+    val rescue = RescueManager(config, serverClient)
+
+    /** Recompensa garantizada en Stellar si este celular se pierde. */
+    val rewards = RewardManager(
+        config = config,
+        client = serverClient,
+        store = RewardStore(securePrefs("escudo_recompensa")),
+        relay = relay,
+        scope = appScope,
+        shield = coordinator.state
+    )
+
+    /** Lo que este teléfono ganó ayudando a la red (avisos entregados y parte de recompensas). */
+    suspend fun nodeStats(): org.json.JSONObject? =
+        if (config.rewardServerUrl.isBlank()) null
+        else runCatching { serverClient.call("GET", "/api/nodos/${config.nodeId}", null) }.getOrNull()
+
     init {
         sync.onCommand = ::execute
+        sync.onUsefulRelay = { deviceId, nodeId, at ->
+            if (config.rewardServerUrl.isNotBlank()) appScope.launch {
+                runCatching {
+                    serverClient.call(
+                        "POST", "/api/nodos/confirmar",
+                        org.json.JSONObject().put("idEquipo", deviceId).put("idNodo", nodeId).put("en", at)
+                    )
+                }
+            }
+        }
     }
 
     /** Ejecuta en ESTE equipo una orden que mandó alguien del círculo. */
@@ -135,6 +176,8 @@ class ServiceLocator private constructor(context: Context) {
             RemoteCommand.SONAR -> {
                 Alarm.ring(appContext, RING_SECONDS, flash = true)
                 notifier.ringing(from.name)
+                // Con el servicio de accesibilidad activo, la pantalla blanca se abre aunque esté desbloqueado.
+                FakeShutdownService.instance?.launch(notifier.sonando(from.name))
             }
             RemoteCommand.BUSCAR -> seekUntil.value = System.currentTimeMillis() + SEEK_MS
             RemoteCommand.GUARDIAN_ON -> circle.update(from.id) { it.copy(iWatch = true) }

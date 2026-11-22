@@ -62,6 +62,23 @@ class EscudoConfig(context: Context) {
         get() = prefs.getString(KEY_RELAY, null)?.ifBlank { null } ?: DEFAULT_RELAY
         set(value) = prefs.edit().putString(KEY_RELAY, value.trim().trimEnd('/')).apply()
 
+    /**
+     * Recompensa (en bolivianos) que se bloquea en Stellar si este celular se
+     * reporta como perdido. 0 = desactivada.
+     */
+    var rewardBs: Int
+        get() = prefs.getInt(KEY_REWARD_BS, 0)
+        set(value) = prefs.edit().putInt(KEY_REWARD_BS, value.coerceIn(0, MAX_REWARD_BS)).apply()
+
+    var rewardMessage: String
+        get() = prefs.getString(KEY_REWARD_MSG, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_REWARD_MSG, value.trim().take(200)).apply()
+
+    /** Servidor de recompensas (recompensas/server), el que publica los escrows. */
+    var rewardServerUrl: String
+        get() = prefs.getString(KEY_REWARD_URL, null)?.ifBlank { null } ?: DEFAULT_REWARD_SERVER
+        set(value) = prefs.edit().putString(KEY_REWARD_URL, value.trim().trimEnd('/')).apply()
+
     /** Dirección Bluetooth del llavero guardián enlazado (iTag). */
     var tagAddress: String?
         get() = prefs.getString(KEY_TAG, null)
@@ -76,6 +93,26 @@ class EscudoConfig(context: Context) {
         get() = prefs.getLong(KEY_INBOX, 0)
         set(value) = prefs.edit().putLong(KEY_INBOX, value).apply()
 
+    /**
+     * Identificador de este teléfono como nodo de la red: va en los avisos
+     * ajenos que reenvía, para cobrar el micropago. No se relaciona con el id
+     * del equipo, así reenviar no revela quién eres.
+     */
+    val nodeId: String by lazy { stored(KEY_NODE) { Crypto.randomHex(8) } }
+
+    /** Porcentaje de la recompensa que se comparte con los nodos que vieron el celular. */
+    var rewardSharePct: Int
+        get() = prefs.getInt(KEY_SHARE, 10)
+        set(value) = prefs.edit().putInt(KEY_SHARE, value.coerceIn(0, 50)).apply()
+
+    /** Correo de la cuenta de rescate del panel web (null = sin cuenta). */
+    var rescueEmail: String?
+        get() = prefs.getString(KEY_RESCUE_EMAIL, null)
+        set(value) = prefs.edit().putString(KEY_RESCUE_EMAIL, value).apply()
+
+    /** Prueba ante el servidor de que este celular es dueño de su cuenta de rescate. */
+    val rescueToken: String by lazy { stored(KEY_RESCUE_TOKEN) { Crypto.randomHex(32) } }
+
     /** Marca de la última orden aplicada: evita repetir órdenes viejas. */
     var lastCommandAt: Long
         get() = prefs.getLong(KEY_CMD, 0)
@@ -88,6 +125,16 @@ class EscudoConfig(context: Context) {
 
     companion object {
         const val DEFAULT_RELAY = "https://ntfy.sh"
+        /** Se completa cuando el servidor de recompensas esté desplegado; mientras, se configura en Ajustes. */
+        const val DEFAULT_REWARD_SERVER = ""
+        const val MAX_REWARD_BS = 340
+        private const val KEY_REWARD_BS = "reward_bs"
+        private const val KEY_REWARD_MSG = "reward_msg"
+        private const val KEY_REWARD_URL = "reward_url"
+        private const val KEY_NODE = "node_id"
+        private const val KEY_SHARE = "reward_share_pct"
+        private const val KEY_RESCUE_EMAIL = "rescue_email"
+        private const val KEY_RESCUE_TOKEN = "rescue_token"
         private const val KEY_ID = "device_id"
         private const val KEY_SECRET = "secret"
         private const val KEY_NAME = "name"

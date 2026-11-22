@@ -1,6 +1,6 @@
-# Red Centinela · Escudo (APK Android)
+# Dendra · Escudo (APK Android)
 
-Módulo **Escudo antirrobo** de la propuesta *Red Centinela* (National Tech
+Módulo **Escudo antirrobo** de *Dendra* (antes Red Centinela) (National Tech
 Hackathon Bolivia 2026), en Android nativo con Kotlin y Jetpack Compose,
 siguiendo las líneas de diseño **Halo + Nocturno**.
 
@@ -20,6 +20,9 @@ siguiendo las líneas de diseño **Halo + Nocturno**.
 | Guardián: llavero Bluetooth tipo iTag | Programado, **sin probar con un llavero real** |
 | Apagado falso | Funciona con el permiso de accesibilidad (ver notas) |
 | Modo encontrado (pantalla sobre el bloqueo) | Funciona |
+| Recompensa garantizada en Stellar (escrow de Trustless Work) al reportarlo perdido: monto y QR en la pantalla de perdido; el dueño confirma el pago al recuperarlo | Programado, **sin probar en teléfonos** (requiere el servidor de `recompensas/`) |
+| Micropagos en USDC (Stellar) a los teléfonos que entregan avisos útiles de celulares ajenos; opción de compartir el 10 % de la recompensa con ellos | Funciona en testnet (pagos simulados con avisos confirmados por la API; sin probar con dos teléfonos) |
+| Panel web: seguir y controlar el celular desde cualquier navegador, sin círculo (la cuenta se crea en el inicio de la app; cifrada en el teléfono) | Funciona (probado con el emulador y `recompensas/`) |
 | Fotos con la cámara frontal, desbloqueo fallido | No incluido |
 | Reporte por web / número de servicio, mapa de flasheo | No incluido (rol Servidor) |
 | Ciudad (Fila, Micros, Señal), Llegué, Huellita | Solo aparecen como "Próximamente" |
@@ -45,7 +48,12 @@ siguiendo las líneas de diseño **Halo + Nocturno**.
 - **Bluetooth.** Con el Escudo activo, cada teléfono emite un aviso BLE. Sirve
   para el guardián, para la búsqueda de cerca y como relevo: en alerta el aviso
   lleva la ubicación cifrada, y cualquier teléfono con la app que pase cerca
-  la reenvía por internet sin poder leerla.
+  la reenvía por internet sin poder leerla. Si ese teléfono tampoco tiene
+  internet, **guarda el aviso** (hasta 12 h, uno cada 5 min por equipo) y lo
+  entrega en cuanto se conecta. Cada aviso conserva la hora en que se captó:
+  uno entregado tarde entra en la ruta en su lugar y nunca reemplaza una
+  posición más nueva que haya llegado por otro teléfono. Solo se reenvía por
+  internet, nunca por SMS, para no gastar el saldo de un desconocido.
 - **La ubicación no sale del teléfono en el día a día.** Solo se comparte al
   estar reportado.
 
@@ -66,7 +74,7 @@ restringidos*.
 
 ## Probar (2 teléfonos con la app; llamémoslos A = protegido, B = amigo)
 
-**0. Preparación (en ambos).** Completa el inicio: nombre y número, bloqueo de
+**0. Preparación (en ambos).** Completa el inicio: nombre y número, cuenta del panel web (correo y contraseña), bloqueo de
 pantalla, permisos (ubicación "todo el tiempo", Bluetooth, SMS,
 notificaciones, sin ahorro de batería) y *Activar Escudo*. Ten encendidos
 Bluetooth y ubicación.
@@ -108,7 +116,7 @@ A). Separa los teléfonos unos 20–30 m: a los ~25 s B suena y ofrece *Reportar
 robo*. En la pantalla de A el guardián pasa a "fuera de alcance".
 
 **6. Apagado falso.** En A: *Ajustes → Activar* en el aviso de accesibilidad y
-enciende "Red Centinela · Apagado falso". Luego **bloquea A** y mantén
+enciende "Dendra · Apagado falso". Luego **bloquea A** y mantén
 presionado el botón de encendido: en vez del menú de apagado aparece
 "Apagando…" y la pantalla queda en negro, pero A sigue encendido, pasa a
 "robado" y B recibe la alerta y la ubicación. Para salir: toca la pantalla

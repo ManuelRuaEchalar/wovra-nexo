@@ -12,6 +12,7 @@ import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * Sirena del equipo: suena por el canal de alarma a todo volumen, aunque el
@@ -21,6 +22,9 @@ import android.os.VibratorManager
  * dentro de un bolso.
  */
 object Alarm {
+    /** true mientras suena; la pantalla blanca se cierra sola cuando vuelve a false. */
+    val sonando = MutableStateFlow(false)
+
     private var player: MediaPlayer? = null
     private val handler = Handler(Looper.getMainLooper())
     private var previousVolume: Int? = null
@@ -28,6 +32,7 @@ object Alarm {
     @Synchronized
     fun ring(context: Context, seconds: Int, flash: Boolean = false) {
         stop(context)
+        sonando.value = true
         val app = context.applicationContext
         val audio = app.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         runCatching {
@@ -66,6 +71,7 @@ object Alarm {
         runCatching { vibrator(context.applicationContext).cancel() }
         torch(context.applicationContext, false)
         torchCamera = null
+        sonando.value = false
     }
 
     // --- Linterna --------------------------------------------------------------
