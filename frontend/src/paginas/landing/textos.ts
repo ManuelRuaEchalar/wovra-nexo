@@ -160,6 +160,17 @@ const es = {
     bajada: 'Descarga la app para Android e instálala en tu celular. Si quieres sumar a tu organización a las primeras pruebas en Sucre, escríbenos.',
     accion: 'Descargar la app (APK)',
     correo: 'Organizaciones:',
+    instalar: {
+      titulo: 'Si Android bloquea la instalación',
+      aviso: 'Play Protect puede mostrar «Se bloqueó la app para proteger tu dispositivo». Pasa porque Dendra todavía no está en Play Store y usa dos permisos que Google bloquea en apps descargadas de internet: recibir SMS, para avisarte aunque no haya internet, y accesibilidad, para simular que el celular se apaga si te lo roban.',
+      pasosTitulo: 'Cómo instalarla en 1 minuto',
+      pasos: [
+        'Abre Play Store, toca tu foto de perfil y entra a Play Protect.',
+        'Toca el engranaje ⚙ y desactiva «Analizar apps con Play Protect».',
+        'Abre dendra.apk desde tus Descargas y toca Instalar. Si Android lo pide, permite instalar apps de esa fuente.',
+        'Vuelve a Play Protect y activa otra vez «Analizar apps con Play Protect».',
+      ],
+    },
   },
 }
 
@@ -317,6 +328,17 @@ const en: Textos = {
     bajada: 'Download the Android app and install it on your phone. If you want to bring your organization into the first trials in Sucre, write to us.',
     accion: 'Download the app (APK)',
     correo: 'Organizations:',
+    instalar: {
+      titulo: 'If Android blocks the install',
+      aviso: 'Play Protect may show “App blocked to protect your device”. This happens because Dendra is not on the Play Store yet and uses two permissions Google blocks in apps downloaded from the internet: receiving SMS, to alert you even without internet, and accessibility, to fake a shutdown if your phone is stolen.',
+      pasosTitulo: 'How to install it in 1 minute',
+      pasos: [
+        'Open the Play Store, tap your profile picture and go to Play Protect.',
+        'Tap the gear ⚙ and turn off “Scan apps with Play Protect”.',
+        'Open dendra.apk from your Downloads and tap Install. If Android asks, allow installs from that source.',
+        'Go back to Play Protect and turn “Scan apps with Play Protect” on again.',
+      ],
+    },
   },
 }
 

@@ -274,6 +274,16 @@ function Unete({ t, descarga }: { t: Textos; descarga: TextosSitio['nav']['desca
         <BotonApk className="btn btn-luz" t={descarga}>
           {t.unete.accion}
         </BotonApk>
+        <div className="instalar" id="instalar">
+          <h3>{t.unete.instalar.titulo}</h3>
+          <p className="instalar-aviso">{t.unete.instalar.aviso}</p>
+          <p className="instalar-pasos-titulo">{t.unete.instalar.pasosTitulo}</p>
+          <ol>
+            {t.unete.instalar.pasos.map((paso) => (
+              <li key={paso}>{paso}</li>
+            ))}
+          </ol>
+        </div>
         {sitio.contacto && (
           <p className="unete-correo">
             {t.unete.correo} <a href={`mailto:${sitio.contacto}`}>{sitio.contacto}</a>

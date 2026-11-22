@@ -178,3 +178,4 @@
 @media (prefers-reduced-motion: reduce) {
   .boton-apk.descargando, .boton-apk-giro, .aviso-apk, .aviso-apk-icono, .aviso-apk-barra { animation: none; }
 }
+.aviso-apk-ayuda { display: inline-block; margin-top: 8px; color: #6ee7a8; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
