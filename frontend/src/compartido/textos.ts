@@ -26,6 +26,7 @@ const es = {
       titulo: 'Descargando Dendra',
       detalle: 'dendra.apk · 18 MB. Cuando termine, ábrelo desde tus descargas para instalar la app.',
       cerrar: 'Cerrar aviso',
+      ayuda: '¿Android la bloquea? Mira cómo instalarla',
     },
   },
   pie: {
@@ -278,6 +279,7 @@ const en: TextosSitio = {
       titulo: 'Downloading Dendra',
       detalle: 'dendra.apk · 18 MB. When it finishes, open it from your downloads to install the app.',
       cerrar: 'Close notice',
+      ayuda: 'Blocked by Android? See how to install it',
     },
   },
   pie: {

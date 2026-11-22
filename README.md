@@ -17,6 +17,10 @@ Proyecto para la National Startups Hackathon by Stellar 2026 (Bolivia).
    La tarjeta enlaza el contrato en el visor de Trustless Work.
 2. **App Android 0.4.0 (debug):** https://dendra-bo.up.railway.app/dendra.apk
    Usa por defecto este backend. Con un solo teléfono: *Ajustes → Probar el Escudo* simula robo y pérdida.
+   Si Play Protect muestra *«Se bloqueó la app para proteger tu dispositivo»*: lo hace con cualquier app
+   descargada de internet que pida recibir SMS o accesibilidad, y Dendra usa ambos (canal SMS y falso apagado).
+   Play Store → foto de perfil → *Play Protect* → ⚙ → desactivar *Analizar apps con Play Protect*, instalar
+   `dendra.apk` desde Descargas y volver a activarlo. Por USB también funciona: `adb install dendra.apk`.
 3. **Estado del servidor:** https://dendra-bo.up.railway.app/api/salud
 
 ## Evidencia en Stellar testnet
