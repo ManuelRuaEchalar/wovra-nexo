@@ -116,30 +116,60 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 80px; }
 .hero-pausa:hover { color: #fff; border-color: rgba(159, 240, 196, 0.5); }
 
 /* --- La señal (3D) ------------------------------------------------------------- */
-.senal { position: relative; padding-top: 120px; }
-.senal-cabeza { position: relative; z-index: 2; }
-.senal-escenario { position: relative; }
-/* El lienzo queda fijo mientras pasan los pasos y se va con el último. */
-.senal-fondo { position: absolute; inset: 0; pointer-events: none; }
-.senal-lienzo {
-  position: sticky; top: 0; height: 100vh; height: 100svh;
+.senal {
+  position: relative; height: 100vh; height: 100svh; min-height: 640px; overflow: hidden;
+  display: flex; align-items: center;
 }
+.senal-lienzo { position: absolute; inset: 0; pointer-events: none; transition: opacity 0.7s; }
+.senal.reinicio .senal-lienzo, .senal.reinicio .senal-pasos { opacity: 0; }
 .senal-lienzo canvas { display: block; width: 100%; height: 100%; }
-.senal-pasos { position: relative; z-index: 1; list-style: none; margin-top: 0; margin-bottom: 0; }
-.senal-paso { height: 100vh; height: 100svh; display: flex; align-items: center; }
-.senal-tarjeta {
-  max-width: 400px; padding: 28px 30px; border-radius: 22px;
-  background: linear-gradient(160deg, rgba(14, 59, 54, 0.5), rgba(3, 16, 14, 0.55));
-  border: 1px solid var(--linea-noche); backdrop-filter: blur(10px);
-  opacity: 0.28; transform: translateY(16px) scale(0.98);
-  transition: opacity 0.5s, transform 0.5s, border-color 0.5s;
+/* Texto al aire libre sobre la escena, sin tarjetas. */
+.senal-texto { position: relative; z-index: 1; width: 100%; padding-top: var(--nav-alto); }
+.senal-texto > * { max-width: 420px; }
+.landing .senal-texto h2 { font-size: clamp(20px, 1.7vw, 24px); color: var(--texto-suave); margin: 10px 0 0; font-weight: 400; }
+/* Todos los pasos ocupan el mismo lugar; solo se ve el actual. */
+.senal-pasos { display: grid; list-style: none; padding: 0; margin: 36px 0 0; transition: opacity 0.7s; }
+.senal-pasos li {
+  grid-area: 1 / 1; opacity: 0; transform: translateY(14px); visibility: hidden;
+  transition: opacity 0.6s, transform 0.6s, visibility 0.6s;
 }
-.senal-paso.activo .senal-tarjeta { opacity: 1; transform: none; border-color: rgba(159, 240, 196, 0.34); }
-.senal-num { font: 600 13px Hanken, sans-serif; letter-spacing: 0.12em; color: var(--aurora); }
-.senal-num span { color: var(--texto-tenue); }
-.landing .senal-tarjeta h3 { font-size: clamp(24px, 2.2vw, 30px); margin: 12px 0 10px; letter-spacing: -0.035em; }
-.landing .senal-tarjeta p { margin: 0; font-size: 17px; line-height: 1.55; }
-.senal-sin3d { position: relative; z-index: 1; padding-top: 24px; }
+.senal-pasos li.activo { opacity: 1; transform: none; visibility: visible; transition-delay: 0.15s; }
+.landing .senal-pasos h3 {
+  font: 300 clamp(32px, 3.3vw, 48px)/1.05 Sora, sans-serif; letter-spacing: -0.045em; margin: 0 0 16px;
+  text-shadow: 0 2px 24px rgba(3, 16, 14, 0.9);
+}
+.landing .senal-pasos p { margin: 0; font-size: 18px; line-height: 1.55; color: #d4dfdb; text-shadow: 0 1px 16px rgba(3, 16, 14, 0.95); }
+.senal-control { display: flex; align-items: center; gap: 18px; margin-top: 34px; }
+.senal-barras { display: flex; gap: 6px; flex: 1; }
+.senal-barras button { flex: 1; padding: 10px 0; background: none; border: 0; cursor: pointer; }
+.senal-barras span { display: block; height: 2px; border-radius: 2px; background: rgba(159, 240, 196, 0.18); overflow: hidden; position: relative; }
+.senal-barras .hecha span { background: rgba(159, 240, 196, 0.55); }
+.senal-barras .activa span::after {
+  content: ''; position: absolute; inset: 0; background: var(--aurora); box-shadow: 0 0 8px rgba(43, 208, 126, 0.8);
+  transform-origin: left; transform: scaleX(1);
+}
+.senal.corriendo .senal-barras .activa span::after { animation: senal-avance var(--duracion) linear both; }
+@keyframes senal-avance { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.senal-pausa {
+  font: 600 12px Hanken, sans-serif; color: var(--texto-suave); background: none;
+  border: 1px solid rgba(159, 240, 196, 0.2); border-radius: 999px; padding: 7px 14px; cursor: pointer;
+}
+.senal-pausa:hover { color: #fff; border-color: rgba(159, 240, 196, 0.5); }
+
+/* En vertical la escena va arriba y el texto abajo. */
+@media (max-aspect-ratio: 11/10) {
+  .senal { align-items: flex-end; min-height: 600px; }
+  .senal-texto { padding-top: 0; padding-bottom: 5vh; }
+  .senal-texto > * { max-width: none; }
+  .senal-texto::before {
+    content: ''; position: absolute; inset: -60px 0 0; z-index: -1;
+    background: linear-gradient(transparent, rgba(3, 16, 14, 0.85) 30%);
+  }
+  .senal-pasos { margin-top: 14px; }
+  .landing .senal-pasos h3 { font-size: 28px; margin-bottom: 10px; }
+  .landing .senal-pasos p { font-size: 16px; }
+  .senal-control { margin-top: 18px; }
+}
 
 /* --- Secciones ----------------------------------------------------------------- */
 .seccion { padding: clamp(96px, 14vh, 160px) 0; position: relative; }
@@ -249,10 +279,6 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 80px; }
   .hero-texto { bottom: 10vh; }
   .hero-pausa { right: 14px; bottom: 14px; }
 
-  /* En vertical la escena va arriba y las tarjetas abajo. */
-  .senal-paso { align-items: flex-end; padding-bottom: 6vh; }
-  .senal-tarjeta { max-width: none; width: 100%; padding: 22px 22px 24px; background: rgba(3, 16, 14, 0.82); }
-
   .trayecto { grid-template-columns: 1fr; gap: 36px; padding-left: 36px; }
   .trayecto::before { left: 7px; right: auto; top: 7px; bottom: 7px; width: 1px; height: auto; }
   .trayecto li { padding-top: 0; }
@@ -263,5 +289,6 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 80px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .senal-tarjeta, .nav, .nav-enlaces { transition: none; }
+  .senal-pasos li, .nav, .nav-enlaces { transition: none; }
+  .senal.corriendo .senal-barras .activa span::after { animation: none; }
 }

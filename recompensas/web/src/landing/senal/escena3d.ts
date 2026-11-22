@@ -4,8 +4,9 @@
  *
  * Los celulares son objetos mate y oscuros, casi siluetas iluminadas por la luz
  * verde: lo único que brilla es la señal (ver la estética "luz granulada").
- * El avance lo da el scroll: `fijarProgreso(p)` con p entre 0 y el número de
- * pasos − 1; los valores intermedios interpolan las poses.
+ * El avance lo marca la sección (pasa sola de un paso al siguiente): `fijarProgreso(p)`
+ * con p entre 0 y el número de pasos − 1; la escena se desliza hasta ahí interpolando
+ * las poses. `saltar(p)` llega sin transición (al volver a empezar).
  */
 import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
@@ -27,6 +28,7 @@ export interface OpcionesEscena {
 
 export interface Escena {
   fijarProgreso(p: number): void
+  saltar(p: number): void
   activar(activa: boolean): void
   destruir(): void
 }
@@ -63,33 +65,33 @@ const P = (x: number, y: number, z: number, ry: number, rx: number, v: number, h
 /** Una fila por paso: [tuyo, nodo, círculo]. */
 const POSES: Record<Rol, Pose[]> = {
   tuyo: [
-    P(0, 0, 0.2, -0.38, 0.06, 1, 0.35),
-    P(0.05, 0, 0.1, 0.28, 0.02, 1, 0.55),
-    P(0.55, 0, 0, -0.25, 0.04, 1, 0.7),
-    P(-1.05, -0.12, 0, 0.42, 0.05, 1, 0.8),
-    P(-1.35, -0.2, -0.7, 0.45, 0.05, 0.85, 0.3),
-    P(-1.2, -0.15, -0.4, 0.35, 0.04, 1, 0.5),
+    P(0, 0, 0.35, -0.14, 0.03, 1, 0.45),
+    P(0.2, 0, 0.3, 0.12, 0.02, 1, 0.55),
+    P(0.62, 0, 0.1, -0.14, 0.03, 1, 0.7),
+    P(-0.62, -0.03, 0, 0.14, 0.03, 1, 0.75),
+    P(-0.95, -0.08, -1, 0.2, 0.03, 0.75, 0.3),
+    P(0.66, 0, 0.1, -0.14, 0.03, 1, 0.6),
   ],
   nodo: [
-    P(2.6, 0.1, -0.8, -0.5, 0, 0),
-    P(2.6, 0.1, -0.8, -0.5, 0, 0),
-    P(2.4, 0.1, -0.8, -0.5, 0, 0),
-    P(0.95, 0.12, -0.25, -0.4, 0.04, 1, 0.55),
-    P(-0.05, 0.08, -0.55, -0.15, 0.04, 1, 0.35),
-    P(1.25, 0.05, -0.5, -0.4, 0.04, 0.9, 0.25),
+    P(2.2, 0.05, -1, -0.4, 0, 0),
+    P(2.2, 0.05, -1, -0.4, 0, 0),
+    P(2.1, 0.05, -1, -0.4, 0, 0),
+    P(0.66, 0.04, 0.25, -0.14, 0.03, 1, 0.6),
+    P(-0.15, 0.05, -1.15, -0.05, 0.03, 0.8, 0.3),
+    P(1.55, 0.05, -1.2, -0.3, 0.03, 0.7, 0.25),
   ],
   circulo: [
-    P(-2.6, 0.1, -0.8, 0.5, 0, 0),
-    P(-2.6, 0.1, -0.8, 0.5, 0, 0),
-    P(-0.75, 0.1, -0.45, 0.32, 0.04, 1, 0.35),
-    P(-2.4, 0.1, -0.8, 0.5, 0, 0),
-    P(1.15, 0.05, 0.25, -0.32, 0.04, 1, 0.75),
-    P(0.05, 0.02, 0.35, -0.12, 0.04, 1, 0.85),
+    P(-2.2, 0.05, -1, 0.4, 0, 0),
+    P(-2.2, 0.05, -1, 0.4, 0, 0),
+    P(-0.62, 0.03, 0.25, 0.14, 0.03, 1, 0.45),
+    P(-2.1, 0.05, -1, 0.4, 0, 0),
+    P(0.62, 0, 0.35, -0.12, 0.03, 1, 0.75),
+    P(-0.62, 0, 0.3, 0.14, 0.03, 1, 0.8),
   ],
 }
 
 /** Guardián (llavero Bluetooth): solo aparece en el paso 2. */
-const POSE_GUARDIAN = [P(-1.6, -0.9, 0.6, 0.3, 0.2, 0), P(-0.95, -0.55, 0.45, 0.35, 0.3, 1), P(-1.6, -0.9, 0.2, 0.3, 0.2, 0)]
+const POSE_GUARDIAN = [P(-1.3, -0.9, 0.6, 0.3, 0.2, 0), P(-0.62, -0.5, 0.6, 0.35, 0.3, 1), P(-1.3, -0.9, 0.2, 0.3, 0.2, 0)]
 
 const suave = (t: number) => t * t * (3 - 2 * t)
 
@@ -148,7 +150,7 @@ function texturaPunto() {
 
 // --- Pantallas ----------------------------------------------------------------------
 
-const TEX_W = 540
+const TEX_W = 720
 const TEX_H = Math.round((TEX_W * PANT_ALTO) / PANT_ANCHO)
 
 /** Pantalla provisional mientras falta la captura real: noche, anillos de la marca y el rótulo. */
@@ -329,7 +331,7 @@ export function crearEscena(canvas: HTMLCanvasElement, op: OpcionesEscena): Esce
     }
     // Reflejo sobre el vidrio de la pantalla.
     const reflejo = new THREE.Mesh(geoPantalla, new THREE.MeshPhysicalMaterial({
-      color: 0x000000, transparent: true, opacity: 0.18, roughness: 0.05, metalness: 0, clearcoat: 1, envMapIntensity: 2, depthWrite: false,
+      color: 0x000000, transparent: true, opacity: 0.07, roughness: 0.05, metalness: 0, clearcoat: 1, envMapIntensity: 2, depthWrite: false,
     }))
     reflejo.position.z = FRENTE + 0.006
     reflejo.renderOrder = 3
@@ -506,14 +508,15 @@ export function crearEscena(canvas: HTMLCanvasElement, op: OpcionesEscena): Esce
     const visibleAncho = visibleAlto * camara.aspect
     if (camara.aspect >= 1.1) {
       // Escritorio: el texto va a la izquierda, los celulares a la derecha.
-      const s = Math.min(1.05, visibleAncho / 6.3)
+      // Los celulares ocupan casi todo el alto: la app tiene que leerse.
+      const s = Math.min(visibleAlto / 2.35, (visibleAncho * 0.56) / 2.4)
       mundo.scale.setScalar(s)
-      mundo.position.set(visibleAncho * 0.19, 0, 0)
+      mundo.position.set(visibleAncho * 0.2, -visibleAlto * 0.01, 0)
     } else {
       // Celular o tableta vertical: escena arriba, texto abajo.
-      const s = Math.min(0.9, visibleAncho / 3.6)
+      const s = Math.min(visibleAncho / 2.15, (visibleAlto * 0.6) / 1.75)
       mundo.scale.setScalar(s)
-      mundo.position.set(0, visibleAlto * 0.17, 0)
+      mundo.position.set(0, visibleAlto * 0.15, 0)
     }
   }
   const obs = new ResizeObserver(encuadrar)
@@ -549,7 +552,7 @@ export function crearEscena(canvas: HTMLCanvasElement, op: OpcionesEscena): Esce
     const dt = Math.min(0.05, (ahora - previo) / 1000)
     previo = ahora
     tiempo += reducido ? dt * 0.3 : dt
-    progreso += (objetivo - progreso) * Math.min(1, dt * 6)
+    progreso += (objetivo - progreso) * Math.min(1, dt * 2.6)
     const p = progreso
 
     for (const rol of ['tuyo', 'nodo', 'circulo'] as Rol[]) {
@@ -611,6 +614,10 @@ export function crearEscena(canvas: HTMLCanvasElement, op: OpcionesEscena): Esce
   return {
     fijarProgreso(p) {
       objetivo = p
+    },
+    saltar(p) {
+      objetivo = p
+      progreso = p
     },
     activar(si) {
       if (si === activa) return

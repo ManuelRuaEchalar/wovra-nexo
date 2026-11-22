@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import type { Textos } from '../textos'
 import { crearEscena, type Escena, type Pantallas } from './escena3d'
 
 /**
- * Capturas reales de la app, en `./capturas/<nombre>.png`. Las que todavía no
+ * Capturas reales de la app, en `./capturas/<nombre>.webp`. Las que todavía no
  * existen se muestran como pantalla provisional con su nombre.
  */
 const capturas = Object.fromEntries(
@@ -17,7 +17,7 @@ const capturas = Object.fromEntries(
  * Una captura que falta a mitad del recorrido no se muestra: el celular sigue con la anterior.
  */
 const pantallasDeseadas: Pantallas = {
-  tuyo: ['inicio', 'guardian', 'perdido', null, null, null],
+  tuyo: ['inicio', 'guardian', 'perdido', null, null, 'devuelto'],
   nodo: ['nodo', null, null, null, null, null],
   circulo: ['reportar', null, null, null, 'seguimiento', 'recompensa'],
 }
@@ -33,84 +33,112 @@ const nombres: Record<string, string> = {
   reportar: 'Reportar',
   seguimiento: 'Seguimiento',
   recompensa: 'Recompensa',
+  devuelto: 'Recompensa',
 }
 
-/** Progreso continuo (0 … pasos − 1) según qué paso está más cerca del centro de la pantalla. */
-function progresoDe(pasos: HTMLElement[]) {
-  const medio = innerHeight / 2
-  const centros = pasos.map((p) => {
-    const r = p.getBoundingClientRect()
-    return r.top + r.height / 2
-  })
-  if (medio <= centros[0]) return 0
-  for (let i = 0; i < centros.length - 1; i++)
-    if (medio <= centros[i + 1]) return i + (medio - centros[i]) / (centros[i + 1] - centros[i])
-  return centros.length - 1
-}
+/** Cuánto se queda la escena en cada paso antes de pasar al siguiente. */
+const DURACION_MS = 6000
 
 export default function Senal({ t }: { t: Textos }) {
-  const escenario = useRef<HTMLDivElement>(null)
+  const seccion = useRef<HTMLElement>(null)
   const lienzo = useRef<HTMLCanvasElement>(null)
-  const [activo, setActivo] = useState(0)
+  const escena = useRef<Escena | null>(null)
+  const [paso, setPaso] = useState(0)
+  const [visible, setVisible] = useState(false)
+  const [pausado, setPausado] = useState(false)
+  const [reinicio, setReinicio] = useState(false)
   const [sin3d, setSin3d] = useState(false)
   const pendiente = t.senal.pendiente
+  const total = t.senal.pasos.length
 
   useEffect(() => {
-    const cont = escenario.current!
-    const pasos = Array.from(cont.querySelectorAll<HTMLElement>('.senal-paso'))
-    let escena: Escena | null = null
     try {
-      escena = crearEscena(lienzo.current!, { capturas, pantallas, pendiente, nombres })
+      escena.current = crearEscena(lienzo.current!, { capturas, pantallas, pendiente, nombres })
     } catch {
-      setSin3d(true)
+      queueMicrotask(() => setSin3d(true))
     }
-
-    const alMover = () => {
-      const p = progresoDe(pasos)
-      escena?.fijarProgreso(p)
-      setActivo(Math.round(p))
-    }
-    const io = new IntersectionObserver(([e]) => escena?.activar(e.isIntersecting), { rootMargin: '200px 0px' })
-    io.observe(cont)
-    addEventListener('scroll', alMover, { passive: true })
-    addEventListener('resize', alMover)
-    alMover()
+    const io = new IntersectionObserver(
+      ([e]) => {
+        escena.current?.activar(e.isIntersecting)
+        setVisible(e.intersectionRatio > 0.35)
+      },
+      { threshold: [0, 0.35, 0.6] },
+    )
+    io.observe(seccion.current!)
     return () => {
       io.disconnect()
-      removeEventListener('scroll', alMover)
-      removeEventListener('resize', alMover)
-      escena?.destruir()
+      escena.current?.destruir()
+      escena.current = null
     }
   }, [pendiente])
 
+  // Avance solo: cada paso dura DURACION_MS; del último vuelve al primero con un fundido.
+  useEffect(() => {
+    if (!visible || pausado) return
+    let fundido = 0
+    const id = setTimeout(() => {
+      if (paso < total - 1) {
+        setPaso(paso + 1)
+        return
+      }
+      setReinicio(true)
+      fundido = window.setTimeout(() => {
+        escena.current?.saltar(0)
+        setPaso(0)
+        setReinicio(false)
+      }, 700)
+    }, DURACION_MS)
+    return () => {
+      clearTimeout(id)
+      clearTimeout(fundido)
+    }
+  }, [paso, visible, pausado, total])
+
+  useEffect(() => {
+    escena.current?.fijarProgreso(paso)
+  }, [paso])
+
   return (
-    <section className="senal" id="senal" aria-labelledby="senal-titulo">
-      <div className="wrap senal-cabeza">
+    <section
+      ref={seccion}
+      className={`senal${visible && !pausado ? ' corriendo' : ''}${reinicio ? ' reinicio' : ''}`}
+      id="senal"
+      aria-labelledby="senal-titulo"
+      style={{ '--duracion': `${DURACION_MS}ms` } as CSSProperties}
+    >
+      <div className="senal-lienzo" aria-hidden="true">
+        <canvas ref={lienzo} />
+      </div>
+      <div className="wrap senal-texto">
         <p className="eyebrow">{t.senal.eyebrow}</p>
         <h2 id="senal-titulo">{t.senal.titulo}</h2>
-        <p className="bajada">{t.senal.bajada}</p>
-      </div>
-      <div className="senal-escenario" ref={escenario}>
-        <div className="senal-fondo" aria-hidden="true">
-          <div className="senal-lienzo">
-            <canvas ref={lienzo} />
-          </div>
-        </div>
-        {sin3d && <p className="wrap nota senal-sin3d">{t.senal.sin3d}</p>}
-        <ol className="senal-pasos wrap">
+        {sin3d && <p className="nota">{t.senal.sin3d}</p>}
+        <ol className="senal-pasos">
           {t.senal.pasos.map((p, i) => (
-            <li key={i} className={`senal-paso${i === activo ? ' activo' : ''}`}>
-              <div className="senal-tarjeta">
-                <span className="senal-num">
-                  {String(i + 1).padStart(2, '0')}
-                  <span> / {String(t.senal.pasos.length).padStart(2, '0')}</span>
-                </span>
-                <h3>{p.titulo}</h3>
-                <p>{p.texto}</p>
-              </div>
+            <li key={i} className={i === paso ? 'activo' : undefined} aria-current={i === paso ? 'step' : undefined}>
+              <h3>{p.titulo}</h3>
+              <p>{p.texto}</p>
             </li>
           ))}
         </ol>
+        <div className="senal-control">
+          <div className="senal-barras">
+            {t.senal.pasos.map((p, i) => (
+              <button
+                key={i}
+                className={i === paso ? 'activa' : i < paso ? 'hecha' : undefined}
+                aria-label={p.titulo}
+                aria-current={i === paso ? 'step' : undefined}
+                onClick={() => setPaso(i)}
+              >
+                <span />
+              </button>
+            ))}
+          </div>
+          <button className="senal-pausa" onClick={() => setPausado(!pausado)} aria-pressed={pausado}>
+            {pausado ? t.senal.seguir : t.senal.pausar}
+          </button>
+        </div>
       </div>
     </section>
   )

@@ -37,7 +37,6 @@ const es = {
   senal: {
     eyebrow: 'La señal',
     titulo: 'Así viaja la señal',
-    bajada: 'Tres celulares, una misma red. Baja despacio: cada paso muestra la pantalla real de la app.',
     pasos: [
       {
         titulo: 'Tu celular entra a la red',
@@ -65,6 +64,8 @@ const es = {
       },
     ],
     roles: { tuyo: 'Tu celular', nodo: 'Un celular cercano', circulo: 'Tu círculo' },
+    pausar: 'Pausar',
+    seguir: 'Reanudar',
     pendiente: 'Captura pendiente',
     sin3d: 'Tu navegador no puede mostrar la escena 3D. Los pasos se leen igual.',
   },
@@ -171,7 +172,6 @@ const en: Textos = {
   senal: {
     eyebrow: 'The signal',
     titulo: 'How the signal travels',
-    bajada: 'Three phones, one network. Scroll slowly: each step shows the real app screen.',
     pasos: [
       {
         titulo: 'Your phone joins the network',
@@ -199,6 +199,8 @@ const en: Textos = {
       },
     ],
     roles: { tuyo: 'Your phone', nodo: 'A nearby phone', circulo: 'Your circle' },
+    pausar: 'Pause',
+    seguir: 'Play',
     pendiente: 'Screenshot pending',
     sin3d: 'Your browser cannot show the 3D scene. The steps read the same.',
   },
