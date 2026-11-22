@@ -9,12 +9,12 @@ una pantalla provisional con su nombre.
 | --- | --- | --- |
 | `inicio` | El tuyo | 1 · Tu celular entra a la red |
 | `guardian` | El tuyo | 2 · Si se aleja, lo sabes (vincular el guardián) |
-| `perdido` | El tuyo | 3 a 5 · Pantalla de celular perdido (lo que ve quien lo encuentra) |
+| `perdido` | El tuyo | 3 a 5 · Pantalla de celular perdido con la recompensa, el QR y el código |
 | `reportar` | Tu círculo | 1 a 4 · Reportar el celular de un miembro como perdido |
 | `nodo` | Un celular cercano | 1 a 6 · Buscar de cerca: lo detecta por Bluetooth |
 | `seguimiento` | Tu círculo | 5 · Mapa con la última ubicación |
-| `recompensa` | Tu círculo | 6 · Confirmar la devolución y pagar (falta) |
-| `devuelto` | El tuyo | 6 · La recompensa en la pantalla del dueño (falta) |
+| `recompensa` | Tercer celular | 6 · Página de reclamo de quien lo devolvió, ya pagada |
+| `devuelto` | El tuyo | 6 · El dueño confirma la devolución y paga |
 
 Si falta una captura a mitad del recorrido, ese celular sigue mostrando la anterior.
 
