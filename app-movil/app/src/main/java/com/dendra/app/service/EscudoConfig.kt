@@ -125,8 +125,8 @@ class EscudoConfig(context: Context) {
 
     companion object {
         const val DEFAULT_RELAY = "https://ntfy.sh"
-        /** Se completa cuando el servidor de recompensas esté desplegado; mientras, se configura en Ajustes. */
-        const val DEFAULT_REWARD_SERVER = ""
+        /** Backend desplegado en Railway (testnet). Se puede cambiar en Ajustes → Recompensa. */
+        const val DEFAULT_REWARD_SERVER = "https://dendra-bo.up.railway.app"
         const val MAX_REWARD_BS = 340
         private const val KEY_REWARD_BS = "reward_bs"
         private const val KEY_REWARD_MSG = "reward_msg"

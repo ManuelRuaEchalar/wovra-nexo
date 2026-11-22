@@ -21,4 +21,4 @@ Solo tres partes, sin carpetas sueltas en la raíz:
 - `backend/`: API Node 22 + TypeScript. Un módulo por carpeta en `src/` (`servicio.ts` + `rutas.ts`); Stellar en `src/stellar/`.
 - `frontend/`: Vite + React. Páginas en `src/paginas/` (landing, reclamo, panel); lo común en `src/compartido/`.
 
-En la raíz solo van `Dockerfile`, `railway.json`, `README.md`, `CLAUDE.md` y los archivos de configuración de git y Docker. El material de referencia (capturas, borradores, videos) no va al repositorio.
+En la raíz solo van `Dockerfile`, `README.md`, `CLAUDE.md` y los archivos de configuración de git y Docker. El material de referencia (capturas, borradores, videos) no va al repositorio.
