@@ -152,7 +152,7 @@ function Navbar({ t, cambiarIdioma }: { t: Textos; cambiarIdioma: () => void }) 
  * La introducción de la ciudad empieza recién cuando termina el fundido.
  */
 type Fase = 'dendritas' | 'a-ciudad' | 'ciudad' | 'a-dendritas'
-const DENDRITAS_MS = 5000
+const DENDRITAS_MS = 11000
 const FUNDIDO_MS = 1600
 
 function Hero({ t }: { t: Textos }) {
