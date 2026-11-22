@@ -2,7 +2,7 @@
  * Textos del landing en español e inglés. Las dos versiones tienen la misma forma:
  * el tipo `Textos` sale del español y el inglés debe cumplirlo.
  *
- * El lema del hero es provisional.
+ * La frase del hero es provisional.
  */
 
 const es = {
@@ -27,9 +27,11 @@ const es = {
   },
   hero: {
     titulo: 'Dendra',
-    lema: 'Encuentra tu celular robado o perdido. Los celulares de la red lo detectan por internet, wifi, SMS o Bluetooth, y te avisan dónde está.',
-    usos: 'Y la misma red sirve para más: la fila del combustible, el transporte, la señal, los apagones, llegar a casa seguro y cuidar a tus mascotas.',
-    principal: 'Ver cómo viaja la señal',
+    frase: 'Lo que pierdes, la red lo encuentra.',
+    bajada: 'Cada celular con Dendra cuida a los demás. Por internet, wifi, SMS o Bluetooth, el tuyo siempre encuentra cómo avisarte dónde está.',
+    usosTitulo: 'La misma red, pronto también para',
+    usos: ['La fila del combustible', 'Tu micro', 'La señal', 'Los apagones', 'Llegar a casa', 'Tu mascota'],
+    principal: 'Mira cómo lo encuentra',
     secundaria: 'Únete',
     pausar: 'Pausar el fondo',
     seguir: 'Reanudar el fondo',
@@ -173,9 +175,11 @@ const en: Textos = {
   },
   hero: {
     titulo: 'Dendra',
-    lema: 'Find your stolen or lost phone. Phones on the network pick it up over the internet, wifi, SMS or Bluetooth, and tell you where it is.',
-    usos: 'And the same network does more: fuel queues, getting around, signal, blackouts, getting home safely and looking after your pets.',
-    principal: 'See how the signal travels',
+    frase: 'What you lose, the network finds.',
+    bajada: 'Every phone with Dendra looks out for the others. Over the internet, wifi, SMS or Bluetooth, yours always finds a way to tell you where it is.',
+    usosTitulo: 'The same network, soon also for',
+    usos: ['Fuel queues', 'Your bus', 'Signal', 'Blackouts', 'Getting home', 'Your pet'],
+    principal: 'See how it finds it',
     secundaria: 'Join',
     pausar: 'Pause the background',
     seguir: 'Resume the background',

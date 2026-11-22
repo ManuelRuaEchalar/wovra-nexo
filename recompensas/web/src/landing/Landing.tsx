@@ -184,17 +184,27 @@ function Hero({ t }: { t: Textos }) {
   return (
     <section className="hero" id="arriba">
       <div className="hero-fondo" ref={contenedor} aria-hidden="true" />
-      <div className="wrap hero-texto">
-        <h1>{t.hero.titulo}</h1>
-        <p className="hero-lema">{t.hero.lema}</p>
-        <p className="hero-usos">{t.hero.usos}</p>
-        <div className="acciones">
-          <a className="btn btn-luz" href="#senal">
-            {t.hero.principal}
-          </a>
-          <a className="btn btn-linea" href="#unete">
-            {t.hero.secundaria}
-          </a>
+      <div className="hero-texto">
+        <div className="hero-principal">
+          <h1>{t.hero.titulo}</h1>
+          <p className="hero-frase">{t.hero.frase}</p>
+          <p className="hero-bajada">{t.hero.bajada}</p>
+          <div className="acciones">
+            <a className="btn btn-luz" href="#senal">
+              {t.hero.principal}
+            </a>
+            <a className="btn btn-linea" href="#unete">
+              {t.hero.secundaria}
+            </a>
+          </div>
+        </div>
+        <div className="hero-usos">
+          <p>{t.hero.usosTitulo}</p>
+          <ul>
+            {t.hero.usos.map((u) => (
+              <li key={u}>{u}</li>
+            ))}
+          </ul>
         </div>
       </div>
       <button className="hero-pausa" onClick={alternar} aria-pressed={pausado}>
