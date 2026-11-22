@@ -62,36 +62,71 @@ interface Pose {
 
 const P = (x: number, y: number, z: number, ry: number, rx: number, v: number, halo = 0): Pose => ({ x, y, z, ry, rx, v, halo })
 
-/** Una fila por paso: [tuyo, nodo, círculo]. */
+/** Fuera de cuadro, a cada lado. */
+const FUERA_IZQ = P(-2.2, 0.05, -1, 0.4, 0, 0)
+const FUERA_DER = P(2.2, 0.05, -1, -0.4, 0, 0)
+
+/**
+ * Una pose por escena del guion (ver `textos.ts`): 0 apertura, 1 prepáralo,
+ * 2 reportar, 3 recompensa o apagado falso, 4 mapa, 5 brújula, 6 hacer sonar,
+ * 7 recompensa en Stellar, 8 devuelto y pagado.
+ * "tuyo" es el celular perdido, "circulo" el de tu gente y "nodo" un tercero
+ * (el celular que pasa cerca y, al final, quien lo devuelve).
+ */
 const POSES: Record<Rol, Pose[]> = {
   tuyo: [
-    P(0, 0, 0.35, -0.14, 0.03, 1, 0.45),
-    P(0.2, 0, 0.3, 0.12, 0.02, 1, 0.55),
-    P(0.62, 0, 0.1, -0.14, 0.03, 1, 0.7),
-    P(-0.62, -0.03, 0, 0.14, 0.03, 1, 0.75),
+    P(0, 0, 0.35, -0.1, 0.03, 1, 0.6),
+    P(0.1, 0, 0.4, -0.12, 0.03, 1, 0.5),
+    P(0.75, 0, -0.6, -0.2, 0.03, 0.85, 0.4),
+    P(0.1, 0, 0.4, -0.12, 0.03, 1, 0.8),
     P(-0.95, -0.08, -1, 0.2, 0.03, 0.75, 0.3),
-    P(0.66, 0, 0.1, -0.14, 0.03, 1, 0.6),
+    P(0.75, -0.05, -0.5, -0.2, 0.03, 0.9, 0.5),
+    P(0.55, 0, 0.35, -0.14, 0.03, 1, 0.9),
+    P(0.7, 0, -0.3, -0.16, 0.03, 0.9, 0.6),
+    P(-0.62, 0, 0.3, 0.14, 0.03, 1, 0.7),
   ],
   nodo: [
-    P(2.2, 0.05, -1, -0.4, 0, 0),
-    P(2.2, 0.05, -1, -0.4, 0, 0),
-    P(2.1, 0.05, -1, -0.4, 0, 0),
-    P(0.66, 0.04, 0.25, -0.14, 0.03, 1, 0.6),
+    P(1.15, 0.05, -0.9, -0.25, 0.03, 0.8, 0.3),
+    FUERA_DER,
+    FUERA_DER,
+    FUERA_DER,
     P(-0.15, 0.05, -1.15, -0.05, 0.03, 0.8, 0.3),
-    P(1.55, 0.05, -1.2, -0.3, 0.03, 0.7, 0.25),
+    FUERA_DER,
+    FUERA_DER,
+    P(-0.55, 0.03, 0.35, 0.14, 0.03, 1, 0.6),
+    P(0.66, 0.03, 0.3, -0.14, 0.03, 1, 0.8),
   ],
   circulo: [
-    P(-2.2, 0.05, -1, 0.4, 0, 0),
-    P(-2.2, 0.05, -1, 0.4, 0, 0),
-    P(-0.62, 0.03, 0.25, 0.14, 0.03, 1, 0.45),
-    P(-2.1, 0.05, -1, 0.4, 0, 0),
+    P(-1.15, 0.05, -0.9, 0.25, 0.03, 0.8, 0.3),
+    FUERA_IZQ,
+    P(-0.55, 0.03, 0.35, 0.14, 0.03, 1, 0.5),
+    P(-1, 0.05, -1, 0.25, 0.03, 0.7, 0.2),
     P(0.62, 0, 0.35, -0.12, 0.03, 1, 0.75),
-    P(-0.62, 0, 0.3, 0.14, 0.03, 1, 0.8),
+    P(-0.5, 0, 0.35, 0.14, 0.03, 1, 0.7),
+    P(-0.7, 0.03, -0.3, 0.18, 0.03, 0.9, 0.4),
+    FUERA_IZQ,
+    FUERA_IZQ,
   ],
 }
 
-/** Guardián (llavero Bluetooth): solo aparece en el paso 2. */
-const POSE_GUARDIAN = [P(-1.3, -0.9, 0.6, 0.3, 0.2, 0), P(-0.62, -0.5, 0.6, 0.35, 0.3, 1), P(-1.3, -0.9, 0.2, 0.3, 0.2, 0)]
+/** Intensidad de cada flujo de señal en cada escena. */
+const FLUJOS = {
+  onda: [0.6, 0, 0, 1, 0, 0, 1, 0.4, 0], // el celular perdido emite
+  bluetooth: [0.8, 0, 0, 0, 1, 0, 0, 0, 0], // perdido → celular cercano
+  internet: [0.8, 0, 0, 0, 1, 0, 0, 0, 0], // celular cercano → círculo
+  orden: [0, 0, 1, 0, 0, 0, 0.7, 0, 0], // círculo → perdido: reportar, hacer sonar
+  cerca: [0, 0, 0, 0, 0, 1, 0, 0, 0], // perdido → círculo, de cerca (brújula)
+  reclamo: [0, 0, 0, 0, 0, 0, 0, 0.8, 0], // quien lo encontró → escrow
+  pago: [0, 0, 0, 0, 0, 0, 0, 0, 1], // el escrow paga a quien lo devolvió
+}
+
+/** Intensidad de un flujo en el progreso p, interpolada entre escenas. */
+function intensidad(valores: number[], p: number) {
+  const i = Math.max(0, Math.min(valores.length - 1, Math.floor(p)))
+  const j = Math.min(valores.length - 1, i + 1)
+  const k = Math.max(0, Math.min(1, p - i))
+  return valores[i] + (valores[j] - valores[i]) * k
+}
 
 const suave = (t: number) => t * t * (3 - 2 * t)
 
@@ -105,8 +140,6 @@ function poseEn(poses: Pose[], p: number): Pose {
   return { x: m(a.x, b.x), y: m(a.y, b.y), z: m(a.z, b.z), ry: m(a.ry, b.ry), rx: m(a.rx, b.rx), v: m(a.v, b.v), halo: m(a.halo, b.halo) }
 }
 
-/** Cuánto pesa un paso en el progreso p: 1 en el paso, 0 a un paso de distancia. */
-const peso = (p: number, paso: number, ancho = 0.75) => Math.max(0, 1 - Math.abs(p - paso) / ancho)
 
 // --- Geometría ---------------------------------------------------------------------
 
@@ -355,22 +388,6 @@ export function crearEscena(canvas: HTMLCanvasElement, op: OpcionesEscena): Esce
   const telefonos: Record<Rol, Telefono> = { tuyo: crearTelefono(), nodo: crearTelefono(), circulo: crearTelefono() }
   for (const lista of Object.values(op.pantallas)) for (const a of lista) if (a) pedirImagen(a)
 
-  // --- Guardián (llavero Bluetooth)
-  const guardian = new THREE.Group()
-  const geoLlavero = new THREE.ExtrudeGeometry(rectRedondeado(0.28, 0.28, 0.11), { depth: 0.05, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.015, bevelSegments: 4 })
-  geoLlavero.translate(0, 0, -0.025)
-  const matLlavero = new THREE.MeshPhysicalMaterial({ color: 0x0b1916, roughness: 0.4, metalness: 0.5, clearcoat: 0.5 })
-  guardian.add(new THREE.Mesh(geoLlavero, matLlavero))
-  const geoAro = new THREE.TorusGeometry(0.07, 0.008, 12, 48)
-  const matAro = new THREE.MeshBasicMaterial({ color: DESTELLO, transparent: true, toneMapped: false })
-  const aro = new THREE.Mesh(geoAro, matAro)
-  aro.position.z = 0.045
-  aro.scale.y = 0.6
-  aro.rotation.z = (-14 * Math.PI) / 180
-  guardian.add(aro)
-  mundo.add(guardian)
-  aDesechar.push(geoLlavero, matLlavero, geoAro, matAro)
-
   // --- Señal: flujos de partículas de luz
   interface Flujo {
     puntos: THREE.Points
@@ -402,12 +419,13 @@ export function crearEscena(canvas: HTMLCanvasElement, op: OpcionesEscena): Esce
     aDesechar.push(geo, mat)
     return f
   }
-  const ondaGuardian = crearFlujo(260, 'onda', 0, 0.28, 0.04) // paso 2: el guardián avisa
-  const ondaPerdido = crearFlujo(320, 'onda', 0, 0.22, 0.04) // paso 3: el celular perdido emite
-  const bluetooth = crearFlujo(700, 'arco', 0.25, 0.32) // paso 4: tuyo → cercano
-  const internet = crearFlujo(700, 'arco', 0.9, 0.4) // paso 5: cercano → círculo
-  const pagoA = crearFlujo(460, 'arco', 0.5, 0.3) // paso 6: el escrow paga a quien lo devolvió…
-  const pagoB = crearFlujo(280, 'arco', 0.5, 0.3) // …y una parte a la red
+  const onda = crearFlujo(320, 'onda', 0, 0.22, 0.04)
+  const bluetooth = crearFlujo(700, 'arco', 0.25, 0.32)
+  const internet = crearFlujo(700, 'arco', 0.9, 0.4)
+  const orden = crearFlujo(520, 'arco', 0.6, 0.36)
+  const cerca = crearFlujo(520, 'arco', 0.2, 0.3)
+  const reclamo = crearFlujo(420, 'arco', 0.5, 0.3)
+  const pago = crearFlujo(560, 'arco', 0.5, 0.3)
 
   const centroPantalla = (t: Telefono, z = FRENTE + 0.05) => mundo.worldToLocal(t.grupo.localToWorld(new THREE.Vector3(0, 0, z)))
 
@@ -579,20 +597,14 @@ export function crearEscena(canvas: HTMLCanvasElement, op: OpcionesEscena): Esce
       t.halo.visible = t.haloMat.opacity > 0.01
     }
 
-    const pg = poseEn(POSE_GUARDIAN, Math.max(0, Math.min(2, p)))
-    guardian.position.set(pg.x, pg.y + (reducido ? 0 : Math.sin(tiempo * 1.1) * 0.03), pg.z)
-    guardian.rotation.set(pg.rx, pg.ry + (reducido ? 0 : tiempo * 0.25), 0)
-    guardian.scale.setScalar(0.6 + 0.4 * pg.v)
-    guardian.visible = pg.v > 0.02
-    matAro.opacity = pg.v * (0.6 + 0.4 * Math.sin(tiempo * 4))
-
     const { tuyo, nodo, circulo } = telefonos
-    moverOnda(ondaGuardian, guardian.position.clone(), guardian, peso(p, 1), tiempo, 0.9)
-    moverOnda(ondaPerdido, centroPantalla(tuyo, 0), tuyo.grupo, Math.max(peso(p, 2), peso(p, 3) * 0.6), tiempo, 1.1)
-    moverArco(bluetooth, centroPantalla(tuyo), centroPantalla(nodo), peso(p, 3), tiempo)
-    moverArco(internet, centroPantalla(nodo), centroPantalla(circulo), peso(p, 4), tiempo)
-    moverArco(pagoA, centroPantalla(circulo), centroPantalla(tuyo), peso(p, 5), tiempo)
-    moverArco(pagoB, centroPantalla(circulo), centroPantalla(nodo), peso(p, 5) * 0.6, tiempo)
+    moverOnda(onda, centroPantalla(tuyo, 0), tuyo.grupo, intensidad(FLUJOS.onda, p), tiempo, 1.1)
+    moverArco(bluetooth, centroPantalla(tuyo), centroPantalla(nodo), intensidad(FLUJOS.bluetooth, p), tiempo)
+    moverArco(internet, centroPantalla(nodo), centroPantalla(circulo), intensidad(FLUJOS.internet, p), tiempo)
+    moverArco(orden, centroPantalla(circulo), centroPantalla(tuyo), intensidad(FLUJOS.orden, p), tiempo)
+    moverArco(cerca, centroPantalla(tuyo), centroPantalla(circulo), intensidad(FLUJOS.cerca, p), tiempo)
+    moverArco(reclamo, centroPantalla(nodo), centroPantalla(tuyo), intensidad(FLUJOS.reclamo, p), tiempo)
+    moverArco(pago, centroPantalla(tuyo), centroPantalla(nodo), intensidad(FLUJOS.pago, p), tiempo)
 
     if (!reducido) {
       for (let i = 0; i < nPolvo; i++) {

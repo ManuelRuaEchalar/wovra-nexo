@@ -39,28 +39,40 @@ const es = {
     titulo: 'Así viaja la señal',
     pasos: [
       {
-        titulo: 'Tu celular entra a la red',
-        texto: 'Activas Dendra y armas tu círculo: las personas que podrán ver dónde está tu celular si algún día lo pierdes.',
+        titulo: 'Por datos móviles, wifi, SMS o Bluetooth, tu celular siempre encuentra la forma de decirte dónde está.',
+        texto: '',
       },
       {
-        titulo: 'Si se aleja, lo sabes',
-        texto: 'Un guardián Bluetooth se queda contigo. Si tu celular se separa de ti, avisa al instante, mientras todavía está cerca.',
+        titulo: 'Prepáralo en un minuto',
+        texto: 'Instala Dendra, activa el Escudo y suma a tu círculo: las personas de confianza que podrán ayudarte a buscarlo.',
       },
       {
-        titulo: 'Lo reportas como perdido',
-        texto: 'Desde el celular de alguien de tu círculo, o desde el panel web. Tu celular muestra la recompensa y un código QR para quien lo encuentre.',
+        titulo: 'Si lo pierdes o te lo roban',
+        texto: 'Avísalo desde el celular de alguien de tu círculo o desde la página web. Solo eliges qué pasó.',
       },
       {
-        titulo: 'Otro celular lo escucha',
-        texto: 'Cualquier celular con Dendra que pase cerca capta su señal por Bluetooth y reenvía el aviso por internet. Está cifrado: ese celular no puede leerlo.',
+        titulo: 'Ofrece recompensa o finge apagarse',
+        texto: 'Si lo perdiste, muestra cómo devolverlo y la recompensa que espera a quien lo encuentre. Si te lo robaron, finge apagarse y sigue enviando su ubicación.',
       },
       {
-        titulo: 'Tu círculo lo encuentra',
-        texto: 'Solo tu círculo descifra el aviso y ve la última ubicación en el mapa. Ya cerca, la brújula guía los últimos metros.',
+        titulo: 'Síguelo en el mapa',
+        texto: 'Tu círculo ve su ubicación en vivo, cifrada. Aunque no tenga internet, cualquier celular con Dendra que pase cerca la capta por Bluetooth y la reenvía.',
       },
       {
-        titulo: 'Quien lo devuelve, cobra',
-        texto: 'La recompensa espera en un escrow de Stellar. Cuando confirmas que lo recuperaste, se paga en USDC a quien lo devolvió, y una parte a la red que ayudó.',
+        titulo: 'Ya estás cerca: la brújula te guía',
+        texto: 'Gira una vuelta con tu celular: Dendra mide la señal y te indica la dirección y los metros que faltan.',
+      },
+      {
+        titulo: 'Hazlo sonar',
+        texto: 'Aunque esté en silencio, suena a todo volumen, parpadea la linterna y la pantalla se enciende en blanco. Lo encuentras dentro de un bolso, bajo un cojín o en la oscuridad.',
+      },
+      {
+        titulo: 'Una recompensa garantizada en Stellar',
+        texto: 'Al reportarlo como perdido, la recompensa queda bloqueada en un contrato de Stellar: solo puede ir a quien lo devuelva o volver a ti. Quien lo encuentra escanea el QR, entra con su cuenta de Google y la reclama, sin saber de criptomonedas.',
+      },
+      {
+        titulo: 'Devuelto y pagado',
+        texto: 'Cuando lo recuperas, lo confirmas y Stellar le paga en USDC al instante. Si quieres, una parte va a los celulares que ayudaron a encontrarlo.',
       },
     ],
     roles: { tuyo: 'Tu celular', nodo: 'Un celular cercano', circulo: 'Tu círculo' },
@@ -172,28 +184,40 @@ const en: Textos = {
     titulo: 'How the signal travels',
     pasos: [
       {
-        titulo: 'Your phone joins the network',
-        texto: 'You turn on Dendra and build your circle: the people who will see where your phone is if you ever lose it.',
+        titulo: 'Over mobile data, wifi, SMS or Bluetooth, your phone always finds a way to tell you where it is.',
+        texto: '',
       },
       {
-        titulo: 'If it drifts away, you know',
-        texto: 'A Bluetooth guardian stays with you. If your phone gets separated from you, it alerts you right away, while it is still nearby.',
+        titulo: 'Set it up in a minute',
+        texto: 'Install Dendra, turn on the Shield and add your circle: the people you trust to help you look for it.',
       },
       {
-        titulo: 'You report it lost',
-        texto: 'From the phone of someone in your circle, or from the web panel. Your phone shows the reward and a QR code for whoever finds it.',
+        titulo: 'If you lose it or it gets stolen',
+        texto: 'Report it from the phone of someone in your circle or from the website. You just choose what happened.',
       },
       {
-        titulo: 'Another phone hears it',
-        texto: 'Any phone with Dendra that passes by picks up its Bluetooth signal and forwards the alert over the internet. It is encrypted: that phone cannot read it.',
+        titulo: 'It offers a reward or plays dead',
+        texto: 'If it is lost, it shows how to return it and the reward waiting for whoever finds it. If it was stolen, it pretends to switch off and keeps sending its location.',
       },
       {
-        titulo: 'Your circle finds it',
-        texto: 'Only your circle can decrypt the alert and see the last location on the map. Once nearby, the compass guides the last few meters.',
+        titulo: 'Follow it on the map',
+        texto: 'Your circle sees its location live, encrypted. Even without internet, any phone with Dendra passing by picks it up over Bluetooth and forwards it.',
       },
       {
-        titulo: 'Whoever returns it gets paid',
-        texto: 'The reward waits in an escrow on Stellar. When you confirm you got it back, it pays out in USDC to the person who returned it, and a share to the network that helped.',
+        titulo: 'You are close: the compass guides you',
+        texto: 'Turn around once with your phone: Dendra measures the signal and shows you the direction and the meters left.',
+      },
+      {
+        titulo: 'Make it ring',
+        texto: 'Even on silent, it rings at full volume, flashes the torch and lights the screen up in white. You find it in a bag, under a cushion or in the dark.',
+      },
+      {
+        titulo: 'A reward guaranteed on Stellar',
+        texto: 'When it is reported lost, the reward is locked in a Stellar contract: it can only go to whoever returns it or back to you. The finder scans the QR, signs in with Google and claims it, no crypto knowledge needed.',
+      },
+      {
+        titulo: 'Returned and paid',
+        texto: 'Once you get it back, you confirm and Stellar pays them in USDC instantly. If you want, a share goes to the phones that helped find it.',
       },
     ],
     roles: { tuyo: 'Your phone', nodo: 'A nearby phone', circulo: 'Your circle' },

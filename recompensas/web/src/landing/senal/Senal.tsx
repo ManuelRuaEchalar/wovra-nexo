@@ -17,9 +17,10 @@ const capturas = Object.fromEntries(
  * Una captura que falta a mitad del recorrido no se muestra: el celular sigue con la anterior.
  */
 const pantallasDeseadas: Pantallas = {
-  tuyo: ['inicio', 'guardian', 'perdido', null, null, 'devuelto'],
-  nodo: ['nodo', null, null, null, null, null],
-  circulo: ['reportar', null, null, null, 'seguimiento', 'recompensa'],
+  //     0 apertura  1 prepáralo  2 reportar   3 recompensa  4 mapa          5 brújula   6 sonar      7 Stellar   8 pagado
+  tuyo: ['inicio', 'armar', 'inicio', 'perdido', null, null, 'sonando', 'perdido', 'devuelto'],
+  nodo: ['brujula', null, null, null, null, null, null, 'reclamo', 'recompensa'],
+  circulo: ['seguimiento', null, 'reportar', null, 'seguimiento', 'brujula', null, null, null],
 }
 const pantallas = Object.fromEntries(
   Object.entries(pantallasDeseadas).map(([rol, lista]) => [rol, lista.map((n, i) => (i > 0 && n && !capturas[n] ? null : n))]),
@@ -27,13 +28,21 @@ const pantallas = Object.fromEntries(
 
 const nombres: Record<string, string> = {
   inicio: 'Inicio',
-  guardian: 'Guardián',
-  perdido: 'Modo perdido',
-  nodo: 'La red',
+  armar: 'Tu círculo',
   reportar: 'Reportar',
+  perdido: 'Modo perdido',
   seguimiento: 'Seguimiento',
+  brujula: 'Buscar de cerca',
+  sonando: 'Hacer sonar',
+  reclamo: 'Reclamo',
   recompensa: 'Recompensa',
   devuelto: 'Recompensa',
+}
+
+/** `?escena=N` empieza el recorrido en esa escena (para revisarlas una por una). */
+function escenaInicial(total: number) {
+  const n = Number(new URLSearchParams(location.search).get('escena'))
+  return Number.isInteger(n) && n > 0 && n < total ? n : 0
 }
 
 /** Cuánto se queda la escena en cada paso antes de pasar al siguiente. */
@@ -43,7 +52,7 @@ export default function Senal({ t }: { t: Textos }) {
   const seccion = useRef<HTMLElement>(null)
   const lienzo = useRef<HTMLCanvasElement>(null)
   const escena = useRef<Escena | null>(null)
-  const [paso, setPaso] = useState(0)
+  const [paso, setPaso] = useState(() => escenaInicial(t.senal.pasos.length))
   const [visible, setVisible] = useState(false)
   const [reinicio, setReinicio] = useState(false)
   const [sin3d, setSin3d] = useState(false)
@@ -53,6 +62,7 @@ export default function Senal({ t }: { t: Textos }) {
   useEffect(() => {
     try {
       escena.current = crearEscena(lienzo.current!, { capturas, pantallas, pendiente, nombres })
+      escena.current.saltar(escenaInicial(t.senal.pasos.length))
     } catch {
       queueMicrotask(() => setSin3d(true))
     }
@@ -113,9 +123,13 @@ export default function Senal({ t }: { t: Textos }) {
         {sin3d && <p className="nota">{t.senal.sin3d}</p>}
         <ol className="senal-pasos">
           {t.senal.pasos.map((p, i) => (
-            <li key={i} className={i === paso ? 'activo' : undefined} aria-current={i === paso ? 'step' : undefined}>
+            <li
+              key={i}
+              className={`${i === paso ? 'activo' : ''}${p.texto ? '' : ' apertura'}`}
+              aria-current={i === paso ? 'step' : undefined}
+            >
               <h3>{p.titulo}</h3>
-              <p>{p.texto}</p>
+              {p.texto && <p>{p.texto}</p>}
             </li>
           ))}
         </ol>
