@@ -12,6 +12,7 @@ import com.redcentinela.escudo.R
 import com.redcentinela.escudo.domain.model.CircleMember
 import com.redcentinela.escudo.domain.model.ShieldStatus
 import com.redcentinela.escudo.ui.LostModeActivity
+import com.redcentinela.escudo.ui.SonandoActivity
 import com.redcentinela.escudo.ui.MainActivity
 
 /** Todas las notificaciones de la app, en un solo lugar. */
@@ -111,6 +112,8 @@ class Notifier(context: Context) {
         val stop = PendingIntent.getBroadcast(
             app, 3, Intent(app, ActionReceiver::class.java).setAction(ActionReceiver.ACTION_STOP_RING), FLAGS
         )
+        // Pantalla blanca a todo brillo encima del bloqueo, mientras suena.
+        val blanca = PendingIntent.getActivity(app, 6, sonando(by), FLAGS)
         manager.notify(
             ID_RING,
             NotificationCompat.Builder(app, CH_ALERT)
@@ -118,14 +121,21 @@ class Notifier(context: Context) {
                 .setContentText("Toca para silenciar.")
                 .setSmallIcon(R.drawable.ic_shield)
                 .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setContentIntent(stop)
                 .setDeleteIntent(stop)
+                .setFullScreenIntent(blanca, true)
                 .setAutoCancel(true)
                 .build()
         )
     }
 
     fun cancelRing() = manager.cancel(ID_RING)
+
+    fun sonando(by: String): Intent = Intent(app, SonandoActivity::class.java)
+        .putExtra(SonandoActivity.EXTRA_QUIEN, by)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
 
     /**
      * Modo encontrado: muestra la pantalla "Este celular está perdido" encima

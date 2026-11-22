@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.redcentinela.escudo.data.alarm.Alarm
+import com.redcentinela.escudo.data.shutdown.FakeShutdownService
 import com.redcentinela.escudo.data.ble.BleCodec
 import com.redcentinela.escudo.data.ble.BleHub
 import com.redcentinela.escudo.data.ble.TagLink
@@ -175,6 +176,8 @@ class ServiceLocator private constructor(context: Context) {
             RemoteCommand.SONAR -> {
                 Alarm.ring(appContext, RING_SECONDS, flash = true)
                 notifier.ringing(from.name)
+                // Con el servicio de accesibilidad activo, la pantalla blanca se abre aunque esté desbloqueado.
+                FakeShutdownService.instance?.launch(notifier.sonando(from.name))
             }
             RemoteCommand.BUSCAR -> seekUntil.value = System.currentTimeMillis() + SEEK_MS
             RemoteCommand.GUARDIAN_ON -> circle.update(from.id) { it.copy(iWatch = true) }

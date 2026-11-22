@@ -215,6 +215,8 @@ fun AjustesScreen(vm: EscudoViewModel, refresco: Int, onGuardian: () -> Unit) {
 
         Seccion("Probar el Escudo") {
             Tarjeta(relleno = 16.dp) {
+                Prueba("Probar hacer sonar", "Suena a todo volumen, parpadea la linterna y la pantalla se pone blanca unos segundos.") { vm.testRing() }
+                Separador()
                 Prueba("Probar apagado falso", "Muestra el apagado simulado ahora. Para salir: toca la pantalla 5 veces seguidas.") { vm.testFakeShutdown() }
                 Separador()
                 Prueba("Simular robo en este celular", "Entra en alerta: envía tu ubicación a tu círculo por la cascada.") { vm.simulateTheft() }
