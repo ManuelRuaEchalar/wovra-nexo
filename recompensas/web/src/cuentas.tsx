@@ -3,6 +3,7 @@ import { usePollar } from '@pollar/react'
 import type { WalletInfo } from '@pollar/core'
 import { Asset, Horizon, Keypair, Networks, Operation, TransactionBuilder } from '@stellar/stellar-sdk'
 import type { ConfigPublica } from './api'
+import type { TextosSitio } from './textosSitio'
 
 /**
  * Dos maneras de tener una cuenta Stellar para cobrar:
@@ -13,6 +14,7 @@ import type { ConfigPublica } from './api'
 export interface PropsCuenta {
   config: ConfigPublica
   onDireccion: (direccion: string | null) => void
+  t: TextosSitio['cuentas']
 }
 
 const horizon = new Horizon.Server('https://horizon-testnet.stellar.org')
@@ -42,7 +44,7 @@ function billeteraStellar(wallet: WalletInfo | null, wallets: WalletInfo[]): Wal
   return wallets.find(esStellar) ?? (wallet && esStellar(wallet) ? wallet : null)
 }
 
-export function CuentaPollar({ config, onDireccion }: PropsCuenta) {
+export function CuentaPollar({ config, onDireccion, t }: PropsCuenta) {
   const { isAuthenticated, wallet, wallets, hasWallet, createWallet, login, logout, setTrustline } = usePollar()
   const [email, setEmail] = useState('')
   const [usdcListo, setUsdcListo] = useState<boolean | null>(null)
@@ -99,7 +101,7 @@ export function CuentaPollar({ config, onDireccion }: PropsCuenta) {
     return (
       <div className="pila">
         <button className="boton" onClick={() => login({ provider: 'google' })}>
-          Continuar con Google
+          {t.google}
         </button>
         <form
           className="fila"
@@ -110,15 +112,15 @@ export function CuentaPollar({ config, onDireccion }: PropsCuenta) {
         >
           <input
             type="email"
-            placeholder="o con tu correo"
+            placeholder={t.correo}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
           <button className="boton secundario" type="submit">
-            Entrar
+            {t.entrar}
           </button>
         </form>
-        <p className="nota">Sin frases secretas ni apps extra: Pollar crea tu billetera al iniciar sesión.</p>
+        <p className="nota">{t.sinFrases}</p>
       </div>
     )
   }
@@ -129,22 +131,18 @@ export function CuentaPollar({ config, onDireccion }: PropsCuenta) {
     return (
       <div className="pila">
         <p className="nota">
-          {fallo
-            ? 'Pollar no pudo crear tu billetera en Stellar. Intenta de nuevo.'
-            : hasWallet
-              ? 'Tu cuenta de Pollar no tiene todavía una billetera en Stellar.'
-              : 'Sesión iniciada. Falta crear tu billetera.'}
+          {fallo ? t.pollarSinBilletera : hasWallet ? t.sinStellar : t.faltaBilletera}
         </p>
         <button className="boton" disabled={trabajando} onClick={crearBilletera}>
-          {trabajando ? 'Creando…' : 'Crear mi billetera en Stellar'}
+          {trabajando ? t.creando : t.crearStellar}
         </button>
         {error && <p className="error">{error}</p>}
         <p className="nota">
-          Diagnóstico: billeteras {JSON.stringify((wallets ?? []).map((w) => [w.chain ?? '?', w.custody, w.provisioning]))},
+          {t.diagnostico}: {JSON.stringify((wallets ?? []).map((w) => [w.chain ?? '?', w.custody, w.provisioning]))},
           principal {wallet ? `${wallet.chain ?? '?'}/${wallet.provisioning ?? '?'}` : 'ninguna'}
         </p>
         <button className="enlace" onClick={() => logout()}>
-          salir
+          {t.salir}
         </button>
       </div>
     )
@@ -154,12 +152,12 @@ export function CuentaPollar({ config, onDireccion }: PropsCuenta) {
     const segundos = Math.round((Date.now() - esperandoDesde) / 1000)
     return (
       <div className="pila">
-        <p className="nota">Creando tu billetera en Stellar… (suele tardar unos segundos)</p>
+        <p className="nota">{t.creandoStellar}</p>
         {segundos > 45 && (
           <>
-            <p className="nota">Está tardando más de lo normal. Puedes recargar la página: tu sesión se mantiene.</p>
+            <p className="nota">{t.tarda}</p>
             <button className="enlace" onClick={() => location.reload()}>
-              recargar
+              {t.recargar}
             </button>
           </>
         )}
@@ -170,9 +168,9 @@ export function CuentaPollar({ config, onDireccion }: PropsCuenta) {
   return (
     <div className="pila">
       <p className="cuenta">
-        Tu billetera: <code>{direccion?.slice(0, 6)}…{direccion?.slice(-6)}</code>
+        {t.tuBilletera}: <code>{direccion?.slice(0, 6)}…{direccion?.slice(-6)}</code>
         <button className="enlace" onClick={() => logout()}>
-          salir
+          {t.salir}
         </button>
       </p>
       {usdcListo === false && (
@@ -192,10 +190,10 @@ export function CuentaPollar({ config, onDireccion }: PropsCuenta) {
             }
           }}
         >
-          {trabajando ? 'Activando…' : 'Activar USDC en mi billetera'}
+          {trabajando ? t.activando : t.activarUsdc}
         </button>
       )}
-      {usdcListo === null && <p className="nota">Activando tu cuenta en la red…</p>}
+      {usdcListo === null && <p className="nota">{t.activandoRed}</p>}
       {error && <p className="error">{error}</p>}
     </div>
   )
@@ -203,7 +201,7 @@ export function CuentaPollar({ config, onDireccion }: PropsCuenta) {
 
 const CLAVE_LOCAL = 'rc-cuenta-prueba'
 
-export function CuentaPrueba({ config, onDireccion }: PropsCuenta) {
+export function CuentaPrueba({ config, onDireccion, t }: PropsCuenta) {
   const [kp, setKp] = useState<Keypair | null>(() => {
     const s = localStorage.getItem(CLAVE_LOCAL)
     return s ? Keypair.fromSecret(s) : null
@@ -230,7 +228,7 @@ export function CuentaPrueba({ config, onDireccion }: PropsCuenta) {
       setKp(nuevo)
       if ((await tieneUsdc(nuevo.publicKey(), config.usdc)) === null) {
         const r = await fetch(`https://friendbot.stellar.org?addr=${nuevo.publicKey()}`)
-        if (!r.ok) throw new Error('No se pudo crear la cuenta de prueba')
+        if (!r.ok) throw new Error(t.pruebaFalla)
       }
       if (!(await tieneUsdc(nuevo.publicKey(), config.usdc))) {
         const cuenta = await horizon.loadAccount(nuevo.publicKey())
@@ -253,16 +251,16 @@ export function CuentaPrueba({ config, onDireccion }: PropsCuenta) {
     return (
       <div className="pila">
         <p className="cuenta">
-          Cuenta de prueba: <code>{kp.publicKey().slice(0, 6)}…{kp.publicKey().slice(-6)}</code>
+          {t.cuentaPrueba}: <code>{kp.publicKey().slice(0, 6)}…{kp.publicKey().slice(-6)}</code>
         </p>
-        <p className="nota">Se guarda solo en este navegador. Es de testnet: no vale dinero real.</p>
+        <p className="nota">{t.soloNavegador}</p>
       </div>
     )
   }
   return (
     <div className="pila">
       <button className="boton" disabled={trabajando} onClick={crear}>
-        {trabajando ? 'Creando cuenta…' : 'Crear cuenta de prueba (testnet)'}
+        {trabajando ? t.creandoCuenta : t.crearPrueba}
       </button>
       {error && <p className="error">{error}</p>}
     </div>

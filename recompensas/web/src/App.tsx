@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, type ConfigPublica, type Recompensa } from './api'
 import { CuentaPollar, CuentaPrueba } from './cuentas'
-import { Logo } from './Logo'
-import { sitio, tecnologia } from './sitio'
+import { regional, useIdioma, type Idioma } from './idioma'
+import { Navbar } from './sitio/Navbar'
+import { Pie } from './sitio/Pie'
+import { textosSitio, type TextosSitio } from './textosSitio'
+
+type T = TextosSitio['reclamo']
 
 function leerUrl() {
   const id = location.pathname.match(/^\/r\/([\w-]+)/)?.[1] ?? null
@@ -10,13 +14,24 @@ function leerUrl() {
   return { id, codigo }
 }
 
-const bs = (n: number) => n.toLocaleString('es-BO', { maximumFractionDigits: 2 })
-const usdc = (n: number) => n.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const formatos = (idioma: Idioma) => ({
+  bs: (n: number) => n.toLocaleString(regional(idioma), { maximumFractionDigits: 2 }),
+  usdc: (n: number) => n.toLocaleString(regional(idioma), { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+})
 
+/** Página de reclamo de la recompensa (/r/:id), a la que lleva el QR del celular perdido. */
 export default function App({ config }: { config: ConfigPublica }) {
   const { id, codigo: codigoUrl } = leerUrl()
+  const [idioma, cambiarIdioma] = useIdioma()
+  const ts = textosSitio[idioma]
+  const t = ts.reclamo
+  const f = formatos(idioma)
   const [r, setR] = useState<Recompensa | null>(null)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    document.title = ts.titulos.reclamo
+  }, [ts])
 
   useEffect(() => {
     if (!id) return
@@ -27,116 +42,92 @@ export default function App({ config }: { config: ConfigPublica }) {
         .then((x) => vivo && setR(x))
         .catch((e) => vivo && setError(e.message))
     void cargar()
-    const t = setInterval(cargar, 5000)
+    const temporizador = setInterval(cargar, 5000)
     return () => {
       vivo = false
-      clearInterval(t)
+      clearInterval(temporizador)
     }
   }, [id])
 
   return (
-    <>
-      <Encabezado />
-      <main>
+    <div className="pagina-clara">
+      <Navbar t={ts.nav} cambiarIdioma={cambiarIdioma} pagina="reclamo" />
+      <main id="contenido">
         {!id ? (
-          <PortadaGeneral />
+          <PortadaGeneral t={t} />
         ) : !r ? (
           <section className="wrap portada-carga">
-            {error ? <p className="error">{error}</p> : <p className="nota">Buscando la recompensa…</p>}
+            {error ? <p className="error">{error}</p> : <p className="nota">{t.buscando}</p>}
           </section>
         ) : (
           <>
-            <Portada r={r} />
+            <Portada r={r} t={t} f={f} />
             <section id="reclamar" className="wrap seccion-reclamo">
               <div className="panel">
-                <Cuerpo r={r} config={config} codigoUrl={codigoUrl} onCambio={setR} />
+                <Cuerpo r={r} config={config} codigoUrl={codigoUrl} onCambio={setR} ts={ts} f={f} />
               </div>
-              <Verificacion r={r} />
+              <Verificacion r={r} t={t} idioma={idioma} />
             </section>
           </>
         )}
-        <ComoFunciona />
-        <Confianza />
-        <Preguntas />
-        <Cierre />
+        <ComoSeCobra t={t} />
+        <Confianza t={t} />
+        <Preguntas t={t} />
+        <Cierre t={t} />
       </main>
-      <Pie r={r} />
-    </>
+      <Pie t={ts} contrato={r?.enlaces?.escrow} />
+    </div>
   )
 }
 
-// --- Marca y cabecera ---------------------------------------------------------------
-
-function Encabezado() {
-  return (
-    <header className="wrap">
-      <nav aria-label="Principal">
-        <a className="marca" href="#arriba">
-          <Logo /> {sitio.nombre}
-        </a>
-        <div className="enlaces">
-          <a href="#como">Cómo funciona</a>
-          <a href="#confianza">Seguridad</a>
-          <a href="#preguntas">Preguntas</a>
-          <span className="chip-prueba" title="Los montos todavía no son dinero real">
-            Red de pruebas
-          </span>
-        </div>
-      </nav>
-    </header>
-  )
-}
+type F = ReturnType<typeof formatos>
 
 // --- Portada ---------------------------------------------------------------------
 
-function Portada({ r }: { r: Recompensa }) {
+function Portada({ r, t, f }: { r: Recompensa; t: T; f: F }) {
   return (
     <section className="portada" id="arriba">
       <div className="wrap portada-grid">
         <div className="portada-texto">
-          <p className="eyebrow">Recompensa garantizada · {sitio.ciudad}</p>
-          <h1>Encontraste el celular de {r.nombreDueno}.</h1>
-          <p className="bajada">
-            Devuélvelo y cobra la recompensa que dejó bloqueada para ti. No necesitas desbloquearlo ni saber de
-            criptomonedas.
-          </p>
+          <p className="eyebrow">{t.eyebrow}</p>
+          <h1>{t.encontraste(r.nombreDueno)}</h1>
+          <p className="bajada">{t.bajada}</p>
           <div className="acciones">
             {r.estado === 'activa' && (
               <a className="btn" href="#reclamar">
-                Reclamar la recompensa
+                {t.reclamar}
               </a>
             )}
             <a className="enlace-texto" href="#como">
-              Cómo funciona
+              {t.comoSeCobra}
             </a>
           </div>
         </div>
-        <TarjetaNocturna r={r} />
+        <TarjetaNocturna r={r} t={t} f={f} />
       </div>
       <div className="wrap promesa">
-        <span>01 / El dinero ya está bloqueado</span>
-        <span>02 / Solo tú puedes cobrarlo</span>
-        <span>03 / Se paga al devolverlo</span>
+        {t.promesa.map((p) => (
+          <span key={p}>{p}</span>
+        ))}
       </div>
     </section>
   )
 }
 
-const estadoChip: Record<Recompensa['estado'], [string, 'ok' | 'espera' | 'alerta']> = {
-  creando: ['Bloqueándose en Stellar…', 'espera'],
-  activa: ['Disponible para quien lo devuelva', 'ok'],
-  reclamada: ['Reclamada · esperando la devolución', 'espera'],
-  pagando: ['Pagando…', 'espera'],
-  pagada: ['Pagada', 'ok'],
-  devolviendo: ['Volviendo al dueño…', 'espera'],
-  devuelta: ['Retirada por el dueño', 'alerta'],
-  error: ['Con un problema', 'alerta'],
+const tonoEstado: Record<Recompensa['estado'], 'ok' | 'espera' | 'alerta'> = {
+  creando: 'espera',
+  activa: 'ok',
+  reclamada: 'espera',
+  pagando: 'espera',
+  pagada: 'ok',
+  devolviendo: 'espera',
+  devuelta: 'alerta',
+  error: 'alerta',
 }
 
-function TarjetaNocturna({ r }: { r: Recompensa }) {
-  const [texto, tono] = estadoChip[r.estado]
+function TarjetaNocturna({ r, t, f }: { r: Recompensa; t: T; f: F }) {
   return (
-    <div className="escena" aria-label="Recompensa">
+    <div className="escena" aria-label={t.tarjeta}>
       <span className="orbita o1" aria-hidden />
       <span className="orbita o2" aria-hidden />
       <span className="orbita o3" aria-hidden />
@@ -144,19 +135,19 @@ function TarjetaNocturna({ r }: { r: Recompensa }) {
       <span className="nodo n2" aria-hidden />
       <div className="tarjeta-noche">
         <span className="horizonte" aria-hidden />
-        <p className="eyebrow">Bloqueados en un escrow</p>
+        <p className="eyebrow">{t.bloqueados}</p>
         <p className="monto">
-          {bs(r.montoBs)}
+          {f.bs(r.montoBs)}
           <span>Bs</span>
         </p>
-        <p className="equivalente">≈ {usdc(r.montoUsdc)} USDC en la red Stellar</p>
+        <p className="equivalente">{t.equivalente(f.usdc(r.montoUsdc))}</p>
         {r.mensaje && <blockquote>“{r.mensaje}”</blockquote>}
-        <p className={`estado ${tono}`}>
-          <i aria-hidden /> {texto}
+        <p className={`estado ${tonoEstado[r.estado]}`}>
+          <i aria-hidden /> {t.estados[r.estado]}
         </p>
         {r.enlaces && (
           <a className="verificar" href={r.enlaces.escrow} target="_blank" rel="noreferrer">
-            Verificar el contrato ↗
+            {t.verificar}
           </a>
         )}
       </div>
@@ -164,17 +155,14 @@ function TarjetaNocturna({ r }: { r: Recompensa }) {
   )
 }
 
-function PortadaGeneral() {
+function PortadaGeneral({ t }: { t: T }) {
   return (
     <section className="portada" id="arriba">
       <div className="wrap portada-grid">
         <div className="portada-texto">
-          <p className="eyebrow">Recompensa garantizada · {sitio.ciudad}</p>
-          <h1>Devolver un celular, por fin, conviene.</h1>
-          <p className="bajada">
-            Si encontraste un celular protegido por {sitio.nombre}, escanea el código que aparece en su pantalla
-            bloqueada. La recompensa ya está bloqueada en la red Stellar y se paga al devolverlo.
-          </p>
+          <p className="eyebrow">{t.eyebrow}</p>
+          <h1>{t.general.titulo}</h1>
+          <p className="bajada">{t.general.bajada}</p>
         </div>
         <div className="escena" aria-hidden>
           <span className="orbita o1" />
@@ -184,11 +172,11 @@ function PortadaGeneral() {
           <span className="nodo n2" />
           <div className="tarjeta-noche">
             <span className="horizonte" />
-            <p className="eyebrow">Escanea el código</p>
+            <p className="eyebrow">{t.general.escanea}</p>
             <p className="monto">
               QR<span>↗</span>
             </p>
-            <p className="equivalente">en la pantalla del celular perdido</p>
+            <p className="equivalente">{t.general.donde}</p>
           </div>
         </div>
       </div>
@@ -203,45 +191,42 @@ function Cuerpo({
   config,
   codigoUrl,
   onCambio,
+  ts,
+  f,
 }: {
   r: Recompensa
   config: ConfigPublica
   codigoUrl: string
   onCambio: (r: Recompensa) => void
+  ts: TextosSitio
+  f: F
 }) {
+  const a = ts.reclamo.avisos
   switch (r.estado) {
     case 'creando':
-      return <Aviso titulo="Un momento" tono="espera">{r.nombreDueno} está bloqueando la recompensa en la red. Tarda unos segundos.</Aviso>
+      return <Aviso titulo={a.creandoT} tono="espera">{a.creando(r.nombreDueno)}</Aviso>
     case 'error':
-      return <Aviso titulo="Hubo un problema" tono="alerta">No se pudo completar la recompensa. {r.nombreDueno} ya fue avisado.</Aviso>
+      return <Aviso titulo={a.errorT} tono="alerta">{a.error(r.nombreDueno)}</Aviso>
     case 'pagada':
       return (
-        <Aviso titulo="¡Gracias por devolverlo!" tono="ok">
-          La recompensa ya fue pagada{r.reclamante ? ` a ${r.reclamante.nombre}` : ''}. Gracias a ti, un celular volvió
-          con su dueño.
-          {r.repartoRed && (
-            <>
-              {' '}
-              Además, {usdc(r.repartoRed.montoUsdc)} USDC se repartieron entre {r.repartoRed.nodos}{' '}
-              {r.repartoRed.nodos === 1 ? 'teléfono' : 'teléfonos'} de la red que ayudaron a ubicarlo.
-            </>
-          )}
+        <Aviso titulo={a.pagadaT} tono="ok">
+          {a.pagada(r.reclamante?.nombre ?? null)}
+          {r.repartoRed && a.reparto(f.usdc(r.repartoRed.montoUsdc), r.repartoRed.nodos)}
         </Aviso>
       )
     case 'devuelta':
-      return <Aviso titulo="Recompensa retirada" tono="alerta">{r.nombreDueno} retiró esta recompensa: probablemente ya recuperó su celular.</Aviso>
+      return <Aviso titulo={a.devueltaT} tono="alerta">{a.devuelta(r.nombreDueno)}</Aviso>
     case 'reclamada':
     case 'pagando':
     case 'devolviendo':
       return (
-        <Aviso titulo="Recompensa reclamada" tono="espera">
-          {r.reclamante?.nombre ?? 'Alguien'} ya la reclamó. Cuando {r.nombreDueno} confirme que recuperó su celular, se
-          paga a su billetera ({r.reclamante?.direccion}).
-          {r.estado === 'pagando' && ' Pagando ahora…'}
+        <Aviso titulo={a.reclamadaT} tono="espera">
+          {a.reclamada(r.reclamante?.nombre ?? null, r.nombreDueno, r.reclamante?.direccion ?? '')}
+          {r.estado === 'pagando' && a.pagandoAhora}
         </Aviso>
       )
     case 'activa':
-      return <Reclamo r={r} config={config} codigoUrl={codigoUrl} onCambio={onCambio} />
+      return <Reclamo r={r} config={config} codigoUrl={codigoUrl} onCambio={onCambio} ts={ts} f={f} />
   }
 }
 
@@ -250,12 +235,17 @@ function Reclamo({
   config,
   codigoUrl,
   onCambio,
+  ts,
+  f,
 }: {
   r: Recompensa
   config: ConfigPublica
   codigoUrl: string
   onCambio: (r: Recompensa) => void
+  ts: TextosSitio
+  f: F
 }) {
+  const t = ts.reclamo.form
   const [direccion, setDireccion] = useState<string | null>(null)
   const [modo, setModo] = useState<'pollar' | 'prueba'>(config.pollarClavePublica ? 'pollar' : 'prueba')
   const [codigo, setCodigo] = useState(codigoUrl)
@@ -282,22 +272,20 @@ function Reclamo({
   return (
     <div className="reclamo">
       <div className="reclamo-intro">
-        <p className="eyebrow">Reclama en dos pasos</p>
-        <h2>Tu billetera y tus datos.</h2>
-        <p className="nota">
-          Solo {r.nombreDueno} verá tu contacto, para acordar la devolución en un lugar seguro. Nadie más.
-        </p>
+        <p className="eyebrow">{t.eyebrow}</p>
+        <h2>{t.titulo}</h2>
+        <p className="nota">{t.privacidad(r.nombreDueno)}</p>
       </div>
 
       <ol className="pasos-reclamo">
         <li className={direccion ? 'hecho' : ''}>
           <span className="numero">01</span>
           <div className="pila">
-            <h3>Tu billetera</h3>
+            <h3>{t.billetera}</h3>
             {modo === 'pollar' && config.pollarClavePublica ? (
-              <CuentaPollar config={config} onDireccion={alCambiarDireccion} />
+              <CuentaPollar config={config} onDireccion={alCambiarDireccion} t={ts.cuentas} />
             ) : (
-              <CuentaPrueba config={config} onDireccion={alCambiarDireccion} />
+              <CuentaPrueba config={config} onDireccion={alCambiarDireccion} t={ts.cuentas} />
             )}
             {config.pollarClavePublica && !direccion && (
               <button
@@ -307,7 +295,7 @@ function Reclamo({
                   setModo(modo === 'pollar' ? 'prueba' : 'pollar')
                 }}
               >
-                {modo === 'pollar' ? 'Usar una cuenta de prueba' : 'Usar mi cuenta de Google o mi correo'}
+                {modo === 'pollar' ? t.usarPrueba : t.usarPollar}
               </button>
             )}
           </div>
@@ -315,13 +303,13 @@ function Reclamo({
         <li>
           <span className="numero">02</span>
           <form className="pila" onSubmit={enviar}>
-            <h3>Tus datos</h3>
+            <h3>{t.datos}</h3>
             <label>
-              Tu nombre
+              {t.nombre}
               <input value={nombre} onChange={(e) => setNombre(e.target.value)} required maxLength={60} autoComplete="name" />
             </label>
             <label>
-              WhatsApp o teléfono
+              {t.contacto}
               <input
                 value={contacto}
                 onChange={(e) => setContacto(e.target.value)}
@@ -334,7 +322,7 @@ function Reclamo({
             </label>
             {!codigoUrl && (
               <label>
-                Código que aparece en la pantalla del celular
+                {t.codigo}
                 <input
                   value={codigo}
                   onChange={(e) => setCodigo(e.target.value.toUpperCase())}
@@ -345,7 +333,7 @@ function Reclamo({
               </label>
             )}
             <button className="boton" type="submit" disabled={!direccion || enviando}>
-              {enviando ? 'Enviando…' : direccion ? `Reclamar ${bs(r.montoBs)} Bs` : 'Primero crea tu billetera'}
+              {enviando ? t.enviando : direccion ? t.reclamar(f.bs(r.montoBs)) : t.primero}
             </button>
             {error && <p className="error">{error}</p>}
           </form>
@@ -367,26 +355,18 @@ function Aviso({ titulo, tono, children }: { titulo: string; tono: 'ok' | 'esper
   )
 }
 
-const nombreMovimiento: Record<string, string> = {
-  despliegue: 'Escrow creado',
-  fondeo: 'Recompensa bloqueada',
-  disputa: 'El dueño confirmó',
-  pago: 'Pagada a quien lo devolvió',
-  devolucion: 'Devuelta al dueño',
-}
-
-function Verificacion({ r }: { r: Recompensa }) {
+function Verificacion({ r, t, idioma }: { r: Recompensa; t: T; idioma: Idioma }) {
   if (r.movimientos.length === 0) return null
   return (
     <details className="verificacion">
-      <summary>Ver cada paso en la red Stellar</summary>
+      <summary>{t.movimientos.titulo}</summary>
       <ol>
         {r.movimientos.map((m) => (
           <li key={m.hash}>
             <a href={m.enlace} target="_blank" rel="noreferrer">
-              {nombreMovimiento[m.tipo] ?? m.tipo} ↗
+              {t.movimientos[m.tipo] ?? m.tipo} ↗
             </a>
-            <span>{new Date(m.fecha).toLocaleString('es-BO', { dateStyle: 'short', timeStyle: 'short' })}</span>
+            <span>{new Date(m.fecha).toLocaleString(regional(idioma), { dateStyle: 'short', timeStyle: 'short' })}</span>
           </li>
         ))}
       </ol>
@@ -396,23 +376,17 @@ function Verificacion({ r }: { r: Recompensa }) {
 
 // --- Secciones informativas -------------------------------------------------------------
 
-function ComoFunciona() {
-  const pasos = [
-    ['01', 'Bloqueada', 'Cuando su dueño lo reporta como perdido, la recompensa queda bloqueada en un contrato de la red Stellar.'],
-    ['02', 'Reclamas', 'Escaneas el código de la pantalla, inicias sesión con Google o tu correo y dejas tu contacto.'],
-    ['03', 'Devuelves', 'Acuerdan un punto seguro y público para entregarlo. No necesitas desbloquear el celular.'],
-    ['04', 'Cobras', 'El dueño confirma que lo recuperó y la recompensa llega a tu billetera en segundos.'],
-  ]
+function ComoSeCobra({ t }: { t: T }) {
   return (
     <section id="como" className="canal">
       <div className="wrap">
-        <p className="eyebrow">Cómo funciona</p>
-        <h2>Una promesa que no depende de la palabra de nadie.</h2>
+        <p className="eyebrow">{t.como.eyebrow}</p>
+        <h2>{t.como.titulo}</h2>
         <ol className="linea-pasos">
-          {pasos.map(([n, t, d]) => (
+          {t.como.pasos.map(([n, titulo, d]) => (
             <li key={n}>
               <span className="titulo-paso">
-                {n} · {t}
+                {n} · {titulo}
               </span>
               <p>{d}</p>
             </li>
@@ -423,88 +397,48 @@ function ComoFunciona() {
   )
 }
 
-function Confianza() {
+function Confianza({ t }: { t: T }) {
+  const c = t.confianza
   return (
     <section id="confianza" className="seccion wrap">
       <div className="intro">
         <div>
-          <p className="eyebrow">La confianza es parte de la red</p>
-          <h2>Nadie puede quedarse con el dinero.</h2>
+          <p className="eyebrow">{c.eyebrow}</p>
+          <h2>{c.titulo}</h2>
         </div>
-        <p>
-          Las recompensas que se ofrecen en redes sociales suelen terminar en estafas, hacia los dos lados. Aquí el
-          dinero no lo tiene el dueño ni lo tenemos nosotros: está bloqueado en un contrato que cualquiera puede revisar.
-        </p>
+        <p>{c.intro}</p>
       </div>
       <div className="principios">
-        <article>
-          <h3>Bloqueado de verdad.</h3>
-          <p>
-            El monto queda en un escrow de Trustless Work sobre Stellar. Puedes verificarlo antes de mover un dedo.
-          </p>
-        </article>
-        <article>
-          <h3>Tus datos, solo para el dueño.</h3>
-          <p>Tu nombre y tu contacto solo los ve quien perdió el celular. No los publicamos ni los vendemos.</p>
-        </article>
-        <article>
-          <h3>Devolución segura.</h3>
-          <p>
-            Acuerden un lugar público y concurrido. Solo para celulares perdidos: un robo se denuncia a la policía.
-          </p>
-        </article>
+        {c.principios.map(([titulo, texto]) => (
+          <article key={titulo}>
+            <h3>{titulo}</h3>
+            <p>{texto}</p>
+          </article>
+        ))}
       </div>
       <div className="estado-proyecto">
         <div>
-          <p className="eyebrow">Qué es {sitio.nombre}</p>
-          <h3>Una red que se cuida a sí misma.</h3>
-          <p>
-            Cada celular con la app ayuda a encontrar a los demás, con o sin internet. La recompensa garantizada es la
-            primera pieza que conecta esa red con dinero real, para que ayudar también convenga.
-          </p>
+          <p className="eyebrow">{c.queEs}</p>
+          <h3>{c.queEsT}</h3>
+          <p>{c.queEsP}</p>
         </div>
         <div>
-          <p className="eyebrow">En qué etapa estamos</p>
-          <h3>Probando en la red de pruebas.</h3>
-          <p>
-            Hoy las recompensas usan la red de pruebas de Stellar: los montos todavía no son dinero real. Es un
-            proyecto en desarrollo, presentado en la {sitio.hackathon}.
-          </p>
+          <p className="eyebrow">{c.etapa}</p>
+          <h3>{c.etapaT}</h3>
+          <p>{c.etapaP}</p>
         </div>
       </div>
     </section>
   )
 }
 
-function Preguntas() {
-  const preguntas: [string, string][] = [
-    [
-      '¿Necesito saber de criptomonedas?',
-      'No. Inicias sesión con Google o con tu correo y se crea una billetera para ti, sin frases secretas ni aplicaciones extra.',
-    ],
-    [
-      '¿Cómo sé que la recompensa existe?',
-      'Toca «Verificar el contrato» en la tarjeta de arriba: abre el escrow en un visor público de la red Stellar, con el monto bloqueado.',
-    ],
-    [
-      '¿Qué pasa si el dueño no confirma?',
-      'El dinero sigue bloqueado; no vuelve solo al dueño. Si hay un desacuerdo, Dendra actúa como árbitro del contrato y decide a quién va.',
-    ],
-    [
-      '¿Puedo recibirlo en bolivianos?',
-      'Hoy llega a tu billetera en USDC, un dólar digital. El retiro a bolivianos con Pollar es el siguiente paso del proyecto.',
-    ],
-    [
-      '¿Y si el celular fue robado?',
-      'La recompensa es solo para celulares perdidos. Pagar por un celular robado incentivaría robar para «devolverlo». Un robo se denuncia a la policía.',
-    ],
-  ]
+function Preguntas({ t }: { t: T }) {
   return (
     <section id="preguntas" className="seccion wrap">
       <div className="faq">
-        <p className="eyebrow">Antes de reclamar</p>
-        <h2>Preguntas que importan.</h2>
-        {preguntas.map(([p, r]) => (
+        <p className="eyebrow">{t.preguntas.eyebrow}</p>
+        <h2>{t.preguntas.titulo}</h2>
+        {t.preguntas.lista.map(([p, r]) => (
           <details key={p}>
             <summary>{p}</summary>
             <p>{r}</p>
@@ -515,80 +449,13 @@ function Preguntas() {
   )
 }
 
-function Cierre() {
+function Cierre({ t }: { t: T }) {
   return (
     <section className="cierre">
       <span className="orbita-cierre" aria-hidden />
-      <p className="eyebrow">Gracias por cuidar lo de otros</p>
-      <h2>Tu celular también puede ser parte de algo más grande.</h2>
-      <p>
-        {sitio.nombre} convierte los celulares de una ciudad en una red que se cuida a sí misma. Hoy ayudaste a que uno
-        vuelva a casa.
-      </p>
+      <p className="eyebrow">{t.cierre.eyebrow}</p>
+      <h2>{t.cierre.titulo}</h2>
+      <p>{t.cierre.texto}</p>
     </section>
-  )
-}
-
-export function Pie({ r }: { r: Recompensa | null }) {
-  return (
-    <footer className="pie">
-      <div className="wrap pie-grid">
-        <div className="pie-marca">
-          <a className="marca" href="#arriba">
-            <Logo /> {sitio.nombre}
-          </a>
-          <p>{sitio.lema}</p>
-        </div>
-        <div>
-          <h4>La recompensa</h4>
-          <ul>
-            <li><a href="#como">Cómo funciona</a></li>
-            <li><a href="#confianza">Seguridad y privacidad</a></li>
-            <li><a href="#preguntas">Preguntas frecuentes</a></li>
-            {r?.enlaces && (
-              <li>
-                <a href={r.enlaces.escrow} target="_blank" rel="noreferrer">Ver este contrato ↗</a>
-              </li>
-            )}
-          </ul>
-        </div>
-        <div>
-          <h4>Quiénes somos</h4>
-          <p>
-            Un equipo de {sitio.ciudad}, construyendo {sitio.nombre} para la {sitio.hackathon}.
-          </p>
-          {sitio.equipo.length > 0 && (
-            <ul>
-              {sitio.equipo.map((p) => (
-                <li key={p.nombre}>
-                  {p.nombre}
-                  {p.rol && <span> · {p.rol}</span>}
-                </li>
-              ))}
-            </ul>
-          )}
-          {sitio.contacto && (
-            <p>
-              Escríbenos: <a href={`mailto:${sitio.contacto}`}>{sitio.contacto}</a>
-            </p>
-          )}
-        </div>
-        <div>
-          <h4>Construido con</h4>
-          <ul>
-            {tecnologia.map((t) => (
-              <li key={t.nombre}>
-                <a href={t.url} target="_blank" rel="noreferrer">{t.nombre} ↗</a>
-                <span>{t.nota}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-      <div className="wrap pie-final">
-        <span>© 2026 {sitio.nombre} · {sitio.ciudad}</span>
-        <span>Red de pruebas de Stellar: los montos todavía no son dinero real.</span>
-      </div>
-    </footer>
   )
 }

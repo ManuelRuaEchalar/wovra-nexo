@@ -21,7 +21,6 @@ if (ruta === '/' || ruta === '/index.html') {
     </StrictMode>,
   )
 } else if (ruta.startsWith('/panel')) {
-  document.title = 'Recompensa garantizada · Dendra'
   // El panel no usa Pollar: solo descifra en el navegador y habla con el relevo.
   import('./panel/Panel').then(({ default: Panel }) =>
     raiz.render(
@@ -31,6 +30,6 @@ if (ruta === '/' || ruta === '/index.html') {
     ),
   )
 } else {
-  document.title = 'Recompensa garantizada · Dendra'
+  // Cada página pone su título según el idioma.
   import('./reclamo').then(({ iniciarReclamo }) => iniciarReclamo(raiz))
 }
