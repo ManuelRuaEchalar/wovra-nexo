@@ -95,18 +95,20 @@
   .frase { grid-row: 1; }
   .intro, .apps { grid-row: 2; grid-column: 1; transition: opacity 0.8s, transform 0.8s; }
   .intro-titulo { font: 300 clamp(22px, 1.9vw, 30px)/1.25 Sora, sans-serif; letter-spacing: -0.03em; margin: 0 0 14px; color: #f3f8f6; }
-  .intro-texto { font-size: clamp(16px, 1.25vw, 19px); line-height: 1.6; color: var(--texto); margin: 0; max-width: 42ch; }
   .texto.en-intro .apps, .texto:not(.en-intro) .intro { opacity: 0; transform: translateY(10px); pointer-events: none; }
 
   /* La red completa: muchos celulares y los avisos pasando en ondas. */
   .red-densa { transition: opacity 1.2s; }
   .ciudad:not(.en-intro) .red-densa { opacity: 0; }
-  .punto { fill: var(--destello); opacity: 0.6; transform-box: fill-box; transform-origin: center;
-    animation: destello 4.8s linear infinite; }
-  .tramo { stroke: var(--destello); stroke-width: 2; fill: none; opacity: 0.2; vector-effect: non-scaling-stroke;
-    animation: tramo 4.8s linear infinite; }
-  @keyframes destello { 0% { opacity: 1; transform: scale(2.8); fill: #fff; } 10% { opacity: 0.95; transform: scale(1.5); } 24%, 100% { opacity: 0.6; transform: scale(1); } }
-  @keyframes tramo { 0% { opacity: 1; } 16% { opacity: 0.4; } 32%, 100% { opacity: 0.2; } }
+  /* Cada celular: un punto de luz con halo suave; florece cuando le llega un aviso. */
+  .punto { fill: url(#luzCelular); opacity: 0.22; transform-box: fill-box; transform-origin: center;
+    animation: recibe 4.8s ease-out infinite; }
+  @keyframes recibe { 0% { opacity: 1; transform: scale(1.7); } 18% { opacity: 0.7; transform: scale(1.15); } 40%, 100% { opacity: 0.22; transform: scale(1); } }
+  /* El aviso: una estela de luz que recorre la calle de un celular al siguiente. */
+  .tramo { stroke: url(#estela); stroke-width: 2.2; fill: none; stroke-linecap: round; vector-effect: non-scaling-stroke;
+    stroke-dasharray: 0.55 2; stroke-dashoffset: 0.55; opacity: 0; animation: viaja 4.8s linear infinite; }
+  @keyframes viaja { 0% { stroke-dashoffset: 0.55; opacity: 1; } 7% { stroke-dashoffset: -1; opacity: 1; } 7.1%, 100% { stroke-dashoffset: -1; opacity: 0; } }
+  .red-densa .estelas { filter: url(#brillo); }
 
   .nota { position: fixed; right: 18px; bottom: 14px; font: 12px Hanken, sans-serif; color: rgba(201, 214, 210, 0.55); }
 
@@ -137,6 +139,16 @@
       <feColorMatrix in="ruido" type="saturate" values="0" result="gris" />
       <feComposite in="disperso" in2="gris" operator="arithmetic" k1="0" k2="1" k3="0.12" k4="-0.06" />
     </filter>
+    <radialGradient id="luzCelular">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="0.18" stop-color="#c8f7de" />
+      <stop offset="0.45" stop-color="#2bd07e" stop-opacity="0.45" />
+      <stop offset="1" stop-color="#2bd07e" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="estela" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#9ff0c4" />
+      <stop offset="1" stop-color="#ffffff" />
+    </linearGradient>
     <filter id="brillo" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur stdDeviation="1.6" result="b" />
       <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
@@ -156,8 +168,7 @@
 <div class="texto">
   <p class="frase">La misma red cuida tu ciudad.</p>
   <div class="intro">
-    <p class="intro-titulo">Cada punto es un celular con Dendra.</p>
-    <p class="intro-texto">Cuando uno tiene algo que avisar, el aviso salta de celular en celular, cifrado, por internet, wifi, SMS o Bluetooth, hasta llegar a quien tiene que llegar.</p>
+    <p class="intro-titulo">Cada celular es un punto de la red.</p>
   </div>
   <ul class="apps" id="apps"></ul>
 </div>
@@ -256,14 +267,21 @@ for (const [origen, inicio] of [[clave(1, 4), 0], [clave(7, 1), 1.5], [clave(4, 
     retraso.get(k).push(t)
   }
 }
-const primero = (k) => (retraso.get(k) || [0])[0]
+// Estelas: por cada onda, el aviso recorre cada tramo desde el celular que lo tenía al siguiente.
+const estelas = el('g', { class: 'estelas' }, densa)
 const hechos = new Set()
 for (const [k, lista] of vecinos) for (const v of lista) {
   const par = k < v ? k + '|' + v : v + '|' + k
   if (hechos.has(par)) continue
   hechos.add(par)
-  const tramo = el('path', { class: 'tramo', d: ruta([puntos.get(k), puntos.get(v)]) }, densa)
-  tramo.style.animationDelay = -(CICLO_S - Math.max(primero(k), primero(v))) + 's'
+  const tk = retraso.get(k) || [], tv = retraso.get(v) || []
+  tk.forEach((t, n) => {
+    const u = tv[n]
+    if (u === undefined) return
+    const [desde, hasta, t0] = t <= u ? [k, v, t] : [v, k, u]
+    const tramo = el('path', { class: 'tramo', d: ruta([puntos.get(desde), puntos.get(hasta)]), pathLength: 1 }, estelas)
+    tramo.style.animationDelay = -(CICLO_S - t0) + 's'
+  })
 }
 // Celulares dentro de las manzanas (gente en su casa): se encienden cuando la onda pasa por la esquina más cercana.
 for (let i = 0; i < A.length - 1; i++) for (let j = 0; j < B.length - 1; j++) for (let n = 0; n < 3; n++) {
@@ -273,14 +291,14 @@ for (let i = 0; i < A.length - 1; i++) for (let j = 0; j < B.length - 1; j++) fo
   const k = clave(Math.round(fi * 3) / 3, Math.round(fj) === fj ? fj : Math.round(fj))
   const cercano = puntos.has(k) ? k : clave(Math.round(fi), Math.round(fj))
   for (const t of retraso.get(cercano) || [0]) {
-    const c = el('circle', { class: 'punto', cx: p[0], cy: p[1], r: 2.6 }, densa)
+    const c = el('circle', { class: 'punto', cx: p[0], cy: p[1], r: 5.5 }, densa)
     c.style.animationDelay = -(CICLO_S - t - 0.1) + 's'
   }
 }
 for (const [k, p] of puntos) {
   // Cada punto se enciende una vez por cada onda que lo alcanza.
   for (const t of retraso.get(k) || [0]) {
-    const c = el('circle', { class: 'punto', cx: p[0], cy: p[1], r: 3.4 }, densa)
+    const c = el('circle', { class: 'punto', cx: p[0], cy: p[1], r: 7 }, densa)
     c.style.animationDelay = -(CICLO_S - t) + 's'
   }
 }
