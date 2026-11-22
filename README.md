@@ -9,6 +9,45 @@ recompensa garantizada en un escrow sobre **Stellar**.
 
 Proyecto para la National Startups Hackathon by Stellar 2026 (Bolivia).
 
+## Probar en 3 minutos
+
+1. **Web:** abrir una recompensa de prueba ya fondeada en testnet:
+   https://dendra-bo.up.railway.app/r/NRyVqlvZjFM?c=7JK3ME
+   Elegir *Continuar con Google* (Pollar) o *Usar una cuenta de prueba*, dejar nombre y contacto y reclamar.
+   La tarjeta enlaza el contrato en el visor de Trustless Work.
+2. **App Android 0.4.0 (debug):** https://dendra-bo.up.railway.app/dendra.apk
+   Usa por defecto este backend. Con un solo teléfono: *Ajustes → Probar el Escudo* simula robo y pérdida.
+3. **Estado del servidor:** https://dendra-bo.up.railway.app/api/salud
+
+## Evidencia en Stellar testnet
+
+Recompensa completa ejecutada el 2026-11-22 contra el servidor público.
+Escrow (contrato Soroban de Trustless Work): [`CBO5VDB2…KCFW`](https://viewer.trustlesswork.com/CBO5VDB2SY2EHRRNLL3PRVUEPY5WQL5CW7JZHEEWEQKYN6YRTCFUKCFW)
+
+| Paso | Quién firma | Transacción |
+|---|---|---|
+| Despliegue del escrow | Plataforma | [6f3ba0ea…](https://stellar.expert/explorer/testnet/tx/6f3ba0ea543947d5402dd31e4369735778459340cddcc763ce14ccdf7d30e854) |
+| Fondeo en USDC | Dueño (cuenta custodiada en testnet) | [1bfe725f…](https://stellar.expert/explorer/testnet/tx/1bfe725fa7732483f352ad31805d8f4818c39daadc2936669df535ad9cb42112) |
+| Disputa (al confirmar la devolución) | Dueño, rol *approver* | [30faffdf…](https://stellar.expert/explorer/testnet/tx/30faffdfafc4cefe4f31c1162b56e299b63dfeae944ca66c41f02f2fa613bb83) |
+| Resolución: pago a quien lo devolvió | Plataforma, rol *disputeResolver* | [cb88f6f9…](https://stellar.expert/explorer/testnet/tx/cb88f6f97e50e91b2d877c6b4be145eec88560827da3f6ef3be2de9c77ba8ae7) |
+| Pago por lotes a dos nodos (0,01 USDC c/u) | Fondo de la red | [61b88373…](https://stellar.expert/explorer/testnet/tx/61b8837391add024870995d426f1167d2c8f103c86d09aed607211133fa83573) |
+
+**Por qué disputa y resolución:** en Trustless Work el receptor se fija al crear el escrow, pero quien encuentra el celular aparece después. La plataforma es el árbitro y reparte el saldo a la dirección conocida al final (y, si el dueño lo eligió, una parte a los nodos que vieron el celular, en la misma transacción). Si el dueño cancela, la resolución devuelve todo a su cuenta. El dueño puede rechazar un reclamo falso antes de pagar.
+
+## Riesgo: robar para cobrar la recompensa
+
+- La recompensa existe **solo en modo perdido**. Un celular reportado como robado nunca muestra recompensa ni QR.
+- El pago sale **solo cuando el dueño confirma** que recuperó el celular; puede rechazar el reclamo.
+- Monto máximo por recompensa (50 USDC, `MAX_RECOMPENSA_USDC`) y una sola recompensa activa por equipo.
+- Quien reclama deja nombre y contacto, y su dirección Stellar queda registrada en la cadena.
+- Si el celular pasa de perdido a robado (apagado falso, retiro de chip), la alerta cambia a robo.
+
+## Economía de la red
+
+Ingreso: suscripción de 10 Bs al mes. Una parte alimenta el **fondo de la red** en USDC, que paga 0,01 USDC por aviso útil confirmado, con topes de 30 avisos por equipo y 100 por nodo al día: el costo máximo por usuario es 0,30 USDC al día solo en los días en que su celular está en alerta. La recompensa la pone el dueño y no es ingreso de la plataforma (comisión del escrow: 0 en esta etapa).
+
+**Fuente de la cifra de robos:** unos 700 celulares robados por día en Bolivia, según [Bloomberg Línea (2022)](https://www.bloomberglinea.com/2022/08/30/robo-de-celular-a-evo-desata-peleas-politicas-y-ciudadanos-se-quejan-de-la-inseguridad/); 781.173 robados y hurtados desde 2010, según [eju.tv](https://eju.tv/?p=580225).
+
 ## Estructura
 
 ```
@@ -63,4 +102,10 @@ El `Dockerfile` arma un solo servicio con el frontend y la API. Railway lo detec
 
 ## Equipo
 
-Manuel Rua · Freddy Valencia Medina · Andre Claros — Sucre, Bolivia.
+| Integrante | Rol |
+|---|---|
+| Juan Manuel Rua Echalar ([ManuelRuaEchalar](https://github.com/ManuelRuaEchalar)) | App Android, integración con Stellar |
+| Freddy Valencia Medina | Backend y frontend |
+| Andre Claros | Backend |
+
+Sucre, Bolivia. El historial de este repositorio empieza el 2026-11-22: es la consolidación de un respaldo de trabajo anterior en un solo repositorio ordenado.
