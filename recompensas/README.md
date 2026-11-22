@@ -17,7 +17,7 @@ Dueño cancela ──► los fondos vuelven al dueño
 ## Partes
 
 - `server/`: API en Node 22 + TypeScript (sin compilar: Node ejecuta `.ts` directamente). También sirve la página de reclamo compilada.
-- `web/`: página de reclamo (rama `tarea/pagina-reclamo`).
+- `web/`: el sitio completo en un solo proyecto Vite + React: el landing (`/`), la página de reclamo (`/r/:id`) y el panel web (`/panel`). Cada ruta carga solo su código.
 
 ## Poner en marcha el servidor
 
