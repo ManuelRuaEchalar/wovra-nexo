@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { BotonApk } from './BotonApk'
 import { Logo } from './Logo'
 import type { TextosSitio } from './textos'
 import './sitio.css'
@@ -102,9 +103,9 @@ export function Navbar({
               <i aria-hidden="true" />
               {t.reportar}
             </a>
-            <a className="nav-cta" href="/dendra.apk" download onClick={cerrar}>
+            <BotonApk className="nav-cta" t={t.descarga} onClick={cerrar}>
               {t.unete}
-            </a>
+            </BotonApk>
           </div>
         </div>
       </nav>
