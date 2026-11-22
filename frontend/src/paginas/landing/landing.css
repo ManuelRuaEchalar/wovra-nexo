@@ -325,6 +325,20 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 80px; }
 .unete { background: radial-gradient(50% 70% at 50% 60%, rgba(43, 208, 126, 0.12), transparent 70%); }
 .landing .unete-correo { margin: 16px 0 0; font-size: 14px; color: var(--texto-tenue); }
 .landing .unete-correo a { color: inherit; }
+.instalar {
+  margin: 40px auto 0; max-width: 620px; width: 100%; text-align: left; padding: 26px 28px 24px; border-radius: 22px;
+  background: var(--superficie-noche); border: 1px solid rgba(240, 166, 90, 0.4); scroll-margin-top: calc(var(--nav-alto) + 24px);
+}
+.instalar h3 { margin: 0 0 10px; font: 500 20px Sora, sans-serif; color: var(--tinta-noche); display: flex; align-items: center; gap: 10px; }
+.instalar h3::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #f0a65a; box-shadow: 0 0 10px rgba(240, 166, 90, 0.8); flex: none; }
+.landing .instalar-aviso { margin: 0 0 18px; color: var(--texto-suave); font-size: 15px; line-height: 1.55; }
+.landing .instalar-pasos-titulo { margin: 0 0 10px; font-weight: 600; color: var(--tinta-noche); font-size: 15px; }
+.instalar ol { margin: 0; padding: 0; list-style: none; counter-reset: paso; display: grid; gap: 12px; }
+.instalar li { counter-increment: paso; display: grid; grid-template-columns: 30px 1fr; gap: 12px; align-items: start; font-size: 15px; line-height: 1.5; color: var(--texto-suave); }
+.instalar li::before {
+  content: counter(paso); display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--aurora); color: #03241c; font: 600 14px Hanken, sans-serif;
+}
 
 /* --- Pantallas medianas y chicas ----------------------------------------------- */
 

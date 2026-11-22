@@ -6,7 +6,7 @@ const APK = '/dendra.apk'
 /** Lo que el botón muestra "Descargando…" tras el clic. */
 const BOTON_MS = 4000
 /** Lo que queda el aviso en pantalla. */
-const AVISO_MS = 9000
+const AVISO_MS = 14000
 
 /**
  * Enlace que descarga el APK y deja una señal inmediata de que se pulsó: el botón
@@ -62,6 +62,9 @@ export function BotonApk({
             <div>
               <strong>{t.titulo}</strong>
               <p>{t.detalle}</p>
+              <a className="aviso-apk-ayuda" href="/#instalar" onClick={() => setAviso(false)}>
+                {t.ayuda}
+              </a>
             </div>
             <button type="button" onClick={() => setAviso(false)} aria-label={t.cerrar}>
               ×
