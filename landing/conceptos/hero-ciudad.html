@@ -105,11 +105,11 @@
   .ciudad:not(.en-intro) .red-densa { opacity: 0; }
   /* Cada celular: un punto de luz con halo suave; florece cuando le llega un aviso. */
   .punto { fill: url(#luzCelular); opacity: 0.22; transform-box: fill-box; transform-origin: center;
-    animation: recibe 4.8s ease-out infinite; }
+    animation: recibe 7.5s ease-out infinite; }
   @keyframes recibe { 0% { opacity: 1; transform: scale(1.7); } 18% { opacity: 0.7; transform: scale(1.15); } 40%, 100% { opacity: 0.22; transform: scale(1); } }
   /* El aviso: una estela de luz que recorre la calle de un celular al siguiente. */
   .tramo { stroke: url(#estela); stroke-width: 2.2; fill: none; stroke-linecap: round; vector-effect: non-scaling-stroke;
-    stroke-dasharray: 0.55 2; stroke-dashoffset: 0.55; opacity: 0; animation: viaja 4.8s linear infinite; }
+    stroke-dasharray: 0.55 2; stroke-dashoffset: 0.55; opacity: 0; animation: viaja 7.5s linear infinite; }
   @keyframes viaja { 0% { stroke-dashoffset: 0.55; opacity: 1; } 7% { stroke-dashoffset: -1; opacity: 1; } 7.1%, 100% { stroke-dashoffset: -1; opacity: 0; } }
   .red-densa .estelas { filter: url(#brillo); }
 
@@ -255,7 +255,7 @@ for (let i = 0; i < A.length; i++) for (let j = 0; j < B.length - 1; j++) for (l
 for (let j = 0; j < B.length; j++) for (let i = 0; i < A.length - 1; i++) for (let t = 0; t < 3; t++)
   unir(agregar(i + t / 3, j), agregar(i + (t + 1) / 3, j))
 // Tres avisos que nacen en distintos lugares y se propagan por la red (recorrido en anchura).
-const PASO_S = 0.085, CICLO_S = 4.8
+const PASO_S = 0.15, CICLO_S = 7.5
 const retraso = new Map()
 for (const [origen, inicio] of [[clave(1, 4), 0], [clave(7, 1), 1.5], [clave(4, 0), 3.1]]) {
   if (!puntos.has(origen)) continue
