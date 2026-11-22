@@ -20,7 +20,7 @@ const formatos = (idioma: Idioma) => ({
 })
 
 /** Página de reclamo de la recompensa (/r/:id), a la que lleva el QR del celular perdido. */
-export default function Reclamo({ config }: { config: ConfigPublica }) {
+export default function PaginaReclamo({ config }: { config: ConfigPublica }) {
   const { id, codigo: codigoUrl } = leerUrl()
   const [idioma, cambiarIdioma] = useIdioma()
   const ts = textosSitio[idioma]
