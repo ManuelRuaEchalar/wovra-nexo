@@ -21,6 +21,12 @@ const es = {
     idiomaCorto: 'EN',
     idiomaEtiqueta: 'Ver en inglés',
     saltar: 'Saltar al contenido',
+    descarga: {
+      descargando: 'Descargando…',
+      titulo: 'Descargando Dendra',
+      detalle: 'dendra.apk · 18 MB. Cuando termine, ábrelo desde tus descargas para instalar la app.',
+      cerrar: 'Cerrar aviso',
+    },
   },
   pie: {
     lema: 'Lo que pierdes, la red lo encuentra. Empezamos en Sucre, protegiendo tu celular.',
@@ -267,6 +273,12 @@ const en: TextosSitio = {
     idiomaCorto: 'ES',
     idiomaEtiqueta: 'Ver en español',
     saltar: 'Skip to content',
+    descarga: {
+      descargando: 'Downloading…',
+      titulo: 'Downloading Dendra',
+      detalle: 'dendra.apk · 18 MB. When it finishes, open it from your downloads to install the app.',
+      cerrar: 'Close notice',
+    },
   },
   pie: {
     lema: 'What you lose, the network finds. We start in Sucre, protecting your phone.',

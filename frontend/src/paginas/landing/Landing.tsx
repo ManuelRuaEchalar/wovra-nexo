@@ -5,7 +5,9 @@ import type { Fondo } from './fondos/comun'
 import Senal from './senal/Senal'
 import type { Idioma } from '../../compartido/idioma'
 import { useIdioma } from '../../compartido/idioma'
+import { BotonApk } from '../../compartido/BotonApk'
 import { Navbar } from '../../compartido/Navbar'
+import type { TextosSitio } from '../../compartido/textos'
 import { Pie } from '../../compartido/Pie'
 import { textosSitio } from '../../compartido/textos'
 import { textos, type Textos } from './textos'
@@ -34,13 +36,13 @@ export default function Landing() {
     <div className="landing">
       <Navbar t={ts.nav} cambiarIdioma={cambiarIdioma} pagina="landing" />
       <main id="contenido">
-        <Hero t={t} />
+        <Hero t={t} descarga={ts.nav.descarga} />
         <Senal t={t} />
         <Red t={t} />
         <Recompensa t={t} />
         <Privacidad t={t} />
         <Equipo t={t} idioma={idioma} />
-        <Unete t={t} />
+        <Unete t={t} descarga={ts.nav.descarga} />
       </main>
       <Pie t={ts} enLanding />
     </div>
@@ -58,7 +60,7 @@ type Fase = 'dendritas' | 'a-ciudad' | 'ciudad' | 'a-dendritas'
 const DENDRITAS_MS = 11000
 const FUNDIDO_MS = 1600
 
-function Hero({ t }: { t: Textos }) {
+function Hero({ t, descarga }: { t: Textos; descarga: TextosSitio['nav']['descarga'] }) {
   const contenedor = useRef<HTMLDivElement>(null)
   const seccion = useRef<HTMLElement>(null)
   const fondo = useRef<Fondo | null>(null)
@@ -135,9 +137,9 @@ function Hero({ t }: { t: Textos }) {
             <a className="btn btn-luz" href="#senal">
               {t.hero.principal}
             </a>
-            <a className="btn btn-linea" href="/dendra.apk" download>
+            <BotonApk className="btn btn-linea" t={descarga}>
               {t.hero.secundaria}
-            </a>
+            </BotonApk>
           </div>
         </div>
       </div>
@@ -264,14 +266,14 @@ function Equipo({ t, idioma }: { t: Textos; idioma: Idioma }) {
   )
 }
 
-function Unete({ t }: { t: Textos }) {
+function Unete({ t, descarga }: { t: Textos; descarga: TextosSitio['nav']['descarga'] }) {
   return (
     <section className="seccion unete" id="unete" aria-labelledby="unete-titulo">
       <div className="wrap unete-caja">
         <Cabeza id="unete-titulo" eyebrow={t.unete.eyebrow} titulo={t.unete.titulo} bajada={t.unete.bajada} />
-        <a className="btn btn-luz" href="/dendra.apk" download>
+        <BotonApk className="btn btn-luz" t={descarga}>
           {t.unete.accion}
-        </a>
+        </BotonApk>
         {sitio.contacto && (
           <p className="unete-correo">
             {t.unete.correo} <a href={`mailto:${sitio.contacto}`}>{sitio.contacto}</a>

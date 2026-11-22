@@ -134,3 +134,47 @@
 @media (max-width: 560px) {
   .sitio-pie-grid { grid-template-columns: 1fr; }
 }
+
+/* --- Botón de descarga del APK y su aviso ---------------------------------------- */
+.boton-apk { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+.boton-apk:active { transform: scale(0.96); }
+.boton-apk.descargando { animation: apk-pulso 1.2s ease-out infinite; }
+.boton-apk-giro {
+  width: 15px; height: 15px; border-radius: 50%; flex: none;
+  border: 2px solid currentColor; border-right-color: transparent; animation: apk-giro 0.7s linear infinite;
+}
+@keyframes apk-giro { to { transform: rotate(360deg); } }
+@keyframes apk-pulso {
+  0% { box-shadow: 0 0 0 0 rgba(43, 208, 126, 0.6); }
+  100% { box-shadow: 0 0 0 14px rgba(43, 208, 126, 0); }
+}
+.aviso-apk {
+  position: fixed; z-index: 1000; left: 50%; bottom: 24px; transform: translateX(-50%);
+  width: min(440px, calc(100vw - 32px)); display: flex; align-items: flex-start; gap: 14px;
+  padding: 16px 16px 18px; border-radius: 16px; overflow: hidden;
+  background: rgba(3, 16, 14, 0.96); color: #e8f5ee; border: 1px solid rgba(43, 208, 126, 0.5);
+  box-shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.7), 0 0 32px -8px rgba(43, 208, 126, 0.45);
+  font: 400 14.5px/1.45 Hanken, sans-serif; animation: apk-entra 0.3s ease-out;
+}
+.aviso-apk strong { display: block; font-weight: 600; font-size: 15.5px; margin-bottom: 2px; }
+.aviso-apk p { margin: 0; color: rgba(232, 245, 238, 0.72); }
+.aviso-apk > div { flex: 1; }
+.aviso-apk-icono {
+  display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 50%;
+  background: #2bd07e; color: #03241c; font-weight: 700; animation: apk-baja 1s ease-in-out infinite;
+}
+.aviso-apk button {
+  flex: none; width: 30px; height: 30px; border: 0; border-radius: 50%; cursor: pointer;
+  background: transparent; color: inherit; font-size: 20px; line-height: 1;
+}
+.aviso-apk button:hover { background: rgba(255, 255, 255, 0.08); }
+.aviso-apk-barra {
+  position: absolute; left: 0; bottom: 0; height: 3px; width: 35%; background: #2bd07e;
+  animation: apk-barra 1.4s ease-in-out infinite;
+}
+@keyframes apk-entra { from { opacity: 0; transform: translate(-50%, 16px); } }
+@keyframes apk-baja { 50% { transform: translateY(3px); } }
+@keyframes apk-barra { from { left: -35%; } to { left: 100%; } }
+@media (prefers-reduced-motion: reduce) {
+  .boton-apk.descargando, .boton-apk-giro, .aviso-apk, .aviso-apk-icono, .aviso-apk-barra { animation: none; }
+}
