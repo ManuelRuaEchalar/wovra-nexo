@@ -45,6 +45,35 @@ function escenaInicial(total: number) {
   return Number.isInteger(n) && n > 0 && n < total ? n : 0
 }
 
+/**
+ * Control para cambiar de escena: la órbita inclinada del logo con su punto de luz
+ * en el extremo hacia donde se va, y una estela de luz granulada que lo sigue.
+ * El de "anterior" es el mismo, reflejado.
+ */
+const ORBITA = { rx: 30, ry: 10, giro: (-14 * Math.PI) / 180 }
+function puntoOrbita(angulo: number) {
+  const x = ORBITA.rx * Math.cos(angulo)
+  const y = ORBITA.ry * Math.sin(angulo)
+  const c = Math.cos(ORBITA.giro)
+  const s = Math.sin(ORBITA.giro)
+  return { x: 36 + x * c - y * s, y: 20 + x * s + y * c }
+}
+const CABEZA = puntoOrbita(0)
+const ESTELA = [0.3, 0.6, 0.9, 1.2, 1.5].map((a, i) => ({ ...puntoOrbita(a), r: 2.2 - i * 0.35, i }))
+
+function Orbita() {
+  return (
+    <svg viewBox="0 0 72 40" aria-hidden="true">
+      <ellipse className="orbita-aro" cx="36" cy="20" rx={ORBITA.rx} ry={ORBITA.ry} transform="rotate(-14 36 20)" />
+      {ESTELA.map((e) => (
+        <circle key={e.i} className="orbita-estela" cx={e.x} cy={e.y} r={e.r} style={{ transitionDelay: `${e.i * 45}ms` }} />
+      ))}
+      <circle className="orbita-halo" cx={CABEZA.x} cy={CABEZA.y} r="7" />
+      <circle className="orbita-punto" cx={CABEZA.x} cy={CABEZA.y} r="3.2" />
+    </svg>
+  )
+}
+
 /** Cuánto se queda la escena en cada paso antes de pasar al siguiente. */
 const DURACION_MS = 10000
 
@@ -134,10 +163,10 @@ export default function Senal({ t }: { t: Textos }) {
         <canvas ref={lienzo} />
       </div>
       <button className="senal-flecha anterior" onClick={() => ir(paso - 1)} aria-label={t.senal.anterior}>
-        <svg viewBox="0 0 64 12" aria-hidden="true"><path d="M63 6H1m0 0l5-5M1 6l5 5" /></svg>
+        <Orbita />
       </button>
       <button className="senal-flecha siguiente" onClick={() => ir(paso + 1)} aria-label={t.senal.siguiente}>
-        <svg viewBox="0 0 64 12" aria-hidden="true"><path d="M1 6h62m0 0l-5-5m5 5l-5 5" /></svg>
+        <Orbita />
       </button>
       <div className="senal-texto">
         <p className="eyebrow">{t.senal.eyebrow}</p>
