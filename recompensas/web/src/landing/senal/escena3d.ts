@@ -86,7 +86,7 @@ const POSES: Record<Rol, Pose[]> = {
     P(-0.62, 0, 0.3, 0.14, 0.03, 1, 0.7),
   ],
   nodo: [
-    P(1.15, 0.05, -0.9, -0.25, 0.03, 0.8, 0.3),
+    P(1, 0.05, -0.9, -0.25, 0.03, 0.8, 0.3),
     FUERA_DER,
     FUERA_DER,
     FUERA_DER,
@@ -97,7 +97,7 @@ const POSES: Record<Rol, Pose[]> = {
     P(0.66, 0.03, 0.3, -0.14, 0.03, 1, 0.8),
   ],
   circulo: [
-    P(-1.15, 0.05, -0.9, 0.25, 0.03, 0.8, 0.3),
+    P(-1, 0.05, -0.9, 0.25, 0.03, 0.8, 0.3),
     FUERA_IZQ,
     P(-0.55, 0.03, 0.35, 0.14, 0.03, 1, 0.5),
     P(-1, 0.05, -1, 0.25, 0.03, 0.7, 0.2),
@@ -527,9 +527,10 @@ export function crearEscena(canvas: HTMLCanvasElement, op: OpcionesEscena): Esce
     if (camara.aspect >= 1.1) {
       // Escritorio: el texto va a la izquierda, los celulares a la derecha.
       // Los celulares ocupan casi todo el alto: la app tiene que leerse.
-      const s = Math.min(visibleAlto / 2.35, (visibleAncho * 0.56) / 2.4)
+      const s = Math.min(visibleAlto / 2.4, (visibleAncho * 0.44) / 2.4)
       mundo.scale.setScalar(s)
-      mundo.position.set(visibleAncho * 0.2, -visibleAlto * 0.01, 0)
+      // Corridos a la derecha: dejan aire entre el texto y los celulares.
+      mundo.position.set(visibleAncho * 0.22, -visibleAlto * 0.01, 0)
     } else {
       // Celular o tableta vertical: escena arriba, texto abajo.
       const s = Math.min(visibleAncho / 2.15, (visibleAlto * 0.6) / 1.75)

@@ -124,7 +124,7 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 80px; }
 .senal.reinicio .senal-lienzo, .senal.reinicio .senal-pasos { opacity: 0; }
 .senal-lienzo canvas { display: block; width: 100%; height: 100%; }
 /* Texto al aire libre sobre la escena, sin tarjetas. */
-.senal-texto { position: relative; z-index: 1; width: 100%; padding-top: var(--nav-alto); }
+.senal-texto { position: relative; z-index: 1; width: 100%; padding: var(--nav-alto) 0 0 clamp(80px, 6.5vw, 112px); }
 .senal-texto > * { max-width: 420px; }
 .landing .senal-texto h2 { font-size: clamp(20px, 1.7vw, 24px); color: var(--texto-suave); margin: 10px 0 0; font-weight: 400; }
 /* Todos los pasos ocupan el mismo lugar; solo se ve el actual. */
@@ -141,10 +141,23 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 80px; }
 .landing .senal-pasos .apertura h3 { font-size: clamp(28px, 2.6vw, 38px); line-height: 1.2; }
 .landing .senal-pasos p { margin: 0; font-size: 18px; line-height: 1.55; color: #d4dfdb; text-shadow: 0 1px 16px rgba(3, 16, 14, 0.95); }
 
+/* Flechas para ir a la escena anterior o siguiente. */
+.senal-flecha {
+  position: absolute; z-index: 2; top: 50%; margin-top: -26px; width: 52px; height: 52px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer; color: var(--tinta-noche);
+  background: rgba(3, 16, 14, 0.45); border: 1px solid rgba(159, 240, 196, 0.22); backdrop-filter: blur(6px);
+  transition: border-color 0.2s, background 0.2s;
+}
+.senal-flecha:hover { border-color: rgba(159, 240, 196, 0.6); background: rgba(14, 59, 54, 0.6); }
+.senal-flecha svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.senal-flecha.anterior { left: clamp(14px, 1.6vw, 28px); }
+.senal-flecha.siguiente { right: clamp(14px, 1.6vw, 28px); }
+
 /* En vertical la escena va arriba y el texto abajo. */
 @media (max-aspect-ratio: 11/10) {
   .senal { align-items: flex-end; min-height: 600px; }
-  .senal-texto { padding-top: 0; padding-bottom: 5vh; }
+  .senal-texto { padding: 0 22px 5vh; }
+  .senal-flecha { top: 30%; width: 44px; height: 44px; margin-top: -22px; }
   .senal-texto > * { max-width: none; }
   .senal-texto::before {
     content: ''; position: absolute; inset: -60px 0 0; z-index: -1;

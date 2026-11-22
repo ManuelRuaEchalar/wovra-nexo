@@ -107,6 +107,22 @@ export default function Senal({ t }: { t: Textos }) {
     escena.current?.fijarProgreso(paso)
   }, [paso])
 
+  // Flechas: escena anterior o siguiente. Al dar la vuelta (de la última a la primera
+  // o al revés) salta con un fundido en vez de recorrer todas las escenas.
+  const ir = (destino: number) => {
+    const n = (destino + total) % total
+    if (Math.abs(n - paso) <= 1) {
+      setPaso(n)
+      return
+    }
+    setReinicio(true)
+    setTimeout(() => {
+      escena.current?.saltar(n)
+      setPaso(n)
+      setReinicio(false)
+    }, 500)
+  }
+
   return (
     <section
       ref={seccion}
@@ -117,7 +133,13 @@ export default function Senal({ t }: { t: Textos }) {
       <div className="senal-lienzo" aria-hidden="true">
         <canvas ref={lienzo} />
       </div>
-      <div className="wrap senal-texto">
+      <button className="senal-flecha anterior" onClick={() => ir(paso - 1)} aria-label={t.senal.anterior}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+      </button>
+      <button className="senal-flecha siguiente" onClick={() => ir(paso + 1)} aria-label={t.senal.siguiente}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+      </button>
+      <div className="senal-texto">
         <p className="eyebrow">{t.senal.eyebrow}</p>
         <h2 id="senal-titulo">{t.senal.titulo}</h2>
         {sin3d && <p className="nota">{t.senal.sin3d}</p>}
