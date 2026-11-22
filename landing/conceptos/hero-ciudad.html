@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concepto · Hero 2: la red cuida tu ciudad</title>
+<!--
+  Segunda diapositiva del hero: después de "Dendra · Lo que pierdes, la red lo encuentra",
+  la portada pasa a la ciudad. Fondo: vista satelital del centro de Sucre
+  (output/satelite-aesthetic/centro-de-sucre.png) con un filtro duotono verde de la marca,
+  grano y viñeta. Encima, la red: celulares como puntos de luz en las esquinas reales y la
+  señal corriendo por las calles. Luego, una superposición por cada aplicación de la red,
+  con la cámara viajando a su lugar en el mapa.
+
+  Las calles se detectaron en la imagen: dos familias de rectas (−50,5° y 41,25°) a ~133 px.
+  Cada superposición se ubica con índices de esa grilla, así cae sobre calles y manzanas reales.
+-->
+<style>
+  @font-face { font-family: Sora; src: url(../borradores/assets/sora.ttf); }
+  @font-face { font-family: Hanken; src: url(../borradores/assets/hanken_grotesk.ttf); }
+  :root { --noche: #0e3b36; --tinta: #03100e; --aurora: #2bd07e; --destello: #9ff0c4; --texto: #c9d6d2; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--tinta); color: #f3f8f6; font-family: Hanken, sans-serif; overflow: hidden; }
+
+  /* --- Ciudad ------------------------------------------------------------------ */
+  .ciudad { position: fixed; inset: 0; overflow: hidden; }
+  .mundo {
+    position: absolute; left: 0; top: 0; width: 1974px; height: 797px; transform-origin: 0 0;
+    transition: transform 2.6s cubic-bezier(0.45, 0, 0.15, 1);
+  }
+  .mundo img { position: absolute; inset: 0; width: 100%; height: 100%; filter: url(#duotono); }
+  .mundo svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+  /* Lectura: el texto va sobre la izquierda oscurecida; grano y viñeta encima de todo. */
+  .velo { position: fixed; inset: 0; pointer-events: none;
+    background:
+      linear-gradient(90deg, rgba(3, 16, 14, 0.92) 0%, rgba(3, 16, 14, 0.7) 32%, rgba(3, 16, 14, 0.05) 62%),
+      radial-gradient(120% 90% at 70% 50%, transparent 40%, rgba(3, 16, 14, 0.75) 100%); }
+  .grano { position: fixed; inset: -50%; pointer-events: none; opacity: 0.11; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+    animation: grano 0.9s steps(4) infinite; }
+  @keyframes grano { 25% { transform: translate(3%, -2%); } 50% { transform: translate(-2%, 3%); } 75% { transform: translate(2%, 2%); } }
+
+  /* --- La red sobre las calles -------------------------------------------------- */
+  .enlace { stroke: var(--destello); stroke-width: 1.4; fill: none; opacity: 0.3; vector-effect: non-scaling-stroke; }
+  .pulso { stroke: var(--destello); stroke-width: 2; fill: none; stroke-linecap: round; vector-effect: non-scaling-stroke;
+    stroke-dasharray: 2 130; animation: pulso 3.2s linear infinite; opacity: 0.85; filter: url(#brillo); }
+  @keyframes pulso { to { stroke-dashoffset: -132; } }
+  .nodo { fill: var(--destello); filter: url(#brillo); }
+  .nodo-halo { fill: var(--aurora); opacity: 0.18; }
+
+  /* --- Superposiciones por aplicación ----------------------------------------------- */
+  .app { opacity: 0; transition: opacity 0.9s; pointer-events: none; }
+  .app.activa { opacity: 1; transition-delay: 1.2s; }
+  .etiqueta rect { fill: rgba(3, 16, 14, 0.82); stroke: rgba(159, 240, 196, 0.45); stroke-width: 0.6; }
+  .etiqueta text { font: 600 10px Hanken, sans-serif; fill: #e9f3ef; letter-spacing: 0.01em; }
+  .etiqueta .dato { fill: var(--destello); }
+  .etiqueta circle { fill: var(--aurora); }
+  .trazo { fill: none; stroke: var(--destello); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; filter: url(#brillo); }
+  .trazo-punteado { fill: none; stroke: var(--destello); stroke-width: 2; stroke-dasharray: 1 7; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+  .ambar { fill: #f0a65a; }
+  .auto { fill: #e9f3ef; opacity: 0.9; }
+  .anillo { fill: none; stroke: var(--destello); stroke-width: 1.5; vector-effect: non-scaling-stroke; animation: anillo 2.4s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes anillo { from { transform: scale(0.3); opacity: 0.9; } to { transform: scale(1.6); opacity: 0; } }
+  .celda { fill: var(--aurora); stroke: var(--destello); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .sin-luz { fill: rgba(0, 0, 0, 0.62); stroke: #f0a65a; stroke-width: 1.4; stroke-dasharray: 6 5; vector-effect: non-scaling-stroke; }
+  .apagado { fill: #6b7a76; }
+
+  /* --- Texto ------------------------------------------------------------------------ */
+  .texto { position: fixed; left: clamp(24px, 6.5vw, 112px); top: 50%; transform: translateY(-48%); width: min(500px, 40vw); }
+  .frase { font: 300 clamp(40px, 4.6vw, 72px)/1.02 Sora, sans-serif; letter-spacing: -0.05em; margin: 0 0 40px; text-wrap: balance; }
+  .apps { list-style: none; margin: 0; padding: 0; border-top: 1px solid rgba(159, 240, 196, 0.14); }
+  .apps li { border-bottom: 1px solid rgba(159, 240, 196, 0.14); }
+  .apps button {
+    all: unset; box-sizing: border-box; width: 100%; cursor: pointer; padding: 14px 0; display: grid; grid-template-columns: 1fr auto;
+    align-items: baseline; gap: 4px 12px;
+  }
+  .apps .nombre { font: 300 clamp(20px, 1.7vw, 26px) Sora, sans-serif; letter-spacing: -0.03em; color: rgba(243, 248, 246, 0.38); transition: color 0.4s; }
+  .apps .pronto { font: 600 10px Hanken, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--destello); opacity: 0; transition: opacity 0.4s; }
+  .apps .que { grid-column: 1 / -1; font-size: 16px; line-height: 1.5; color: var(--texto); max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.6s, opacity 0.5s; }
+  .apps .activa .nombre { color: #f3f8f6; }
+  .apps .activa .pronto, .apps .activa .que { opacity: 1; }
+  .apps .activa .que { max-height: 80px; }
+  .apps button:focus-visible .nombre { color: var(--destello); }
+
+  .nota { position: fixed; right: 18px; bottom: 14px; font: 12px Hanken, sans-serif; color: rgba(201, 214, 210, 0.55); }
+
+  @media (max-aspect-ratio: 11/10) {
+    .velo { background: linear-gradient(0deg, rgba(3, 16, 14, 0.95) 0%, rgba(3, 16, 14, 0.75) 42%, rgba(3, 16, 14, 0.05) 70%); }
+    .texto { top: auto; bottom: 5vh; transform: none; width: auto; right: 22px; left: 22px; }
+    .frase { font-size: 34px; margin-bottom: 18px; }
+    .apps button { padding: 10px 0; }
+    .apps .que { font-size: 15px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mundo { transition: none; } .grano, .pulso, .anillo { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Duotono de la marca: sombras casi negras, luces verde menta apagado. -->
+    <filter id="duotono" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values="0.30 0.55 0.15 0 0  0.30 0.55 0.15 0 0  0.30 0.55 0.15 0 0  0 0 0 1 0" />
+      <feComponentTransfer>
+        <feFuncR type="table" tableValues="0.008 0.04 0.16 0.38" />
+        <feFuncG type="table" tableValues="0.05 0.16 0.38 0.70" />
+        <feFuncB type="table" tableValues="0.045 0.13 0.30 0.56" />
+      </feComponentTransfer>
+    </filter>
+    <filter id="brillo" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.6" result="b" />
+      <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+  </defs>
+</svg>
+
+<div class="ciudad" aria-hidden="true">
+  <div class="mundo" id="mundo">
+    <img src="../../output/satelite-aesthetic/centro-de-sucre.png" alt="">
+    <svg viewBox="0 0 1974 797" id="capas"></svg>
+  </div>
+</div>
+<div class="velo"></div>
+<div class="grano"></div>
+
+<div class="texto">
+  <p class="frase">La misma red cuida tu ciudad.</p>
+  <ul class="apps" id="apps"></ul>
+</div>
+<p class="nota">Concepto · hero, segunda diapositiva · centro de Sucre</p>
+
+<script>
+/* --- Grilla de calles detectada en la imagen ------------------------------------- */
+// Familia A (−50,5°): 0,7716·x + 0,6361·y = a   ·   Familia B (41,25°): −0,6593·x + 0,7518·y = b
+const A = [466, 598, 730, 859, 990, 1123, 1256, 1390, 1528]
+const B = [-652, -515, -374, -244, -107, 23]
+const desplazamiento = (lista, i) => {
+  const k = Math.max(0, Math.min(lista.length - 1.001, i)), j = Math.floor(k)
+  return lista[j] + (lista[j + 1] - lista[j]) * (k - j)
+}
+/** Punto en la grilla: índices de calle (con fracción = media cuadra). */
+function P(ia, ib) {
+  const a = desplazamiento(A, ia), b = desplazamiento(B, ib)
+  return [a * 0.7518 - 0.6361 * b, 0.7716 * b + 0.6593 * a]
+}
+const W = 1974, H = 797
+const dentro = ([x, y], m = 30) => x > m && x < W - m && y > m && y < H - m
+const svgNS = 'http://www.w3.org/2000/svg'
+function el(tag, attrs, padre) {
+  const e = document.createElementNS(svgNS, tag)
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v)
+  if (padre) padre.appendChild(e)
+  return e
+}
+const ruta = (puntos) => 'M' + puntos.map((p) => p.map((v) => v.toFixed(1)).join(' ')).join(' L')
+const capas = document.getElementById('capas')
+
+/* --- La red: celulares en las esquinas y la señal corriendo por las calles --------- */
+let semilla = 7
+const azar = () => ((semilla = (semilla * 16807) % 2147483647) / 2147483647)
+const red = el('g', {}, capas)
+const hay = {}
+for (let i = 0; i < A.length; i++) for (let j = 0; j < B.length; j++) {
+  const p = P(i, j)
+  if (dentro(p) && azar() < 0.62) hay[i + ',' + j] = p
+}
+for (const [k, p] of Object.entries(hay)) {
+  const [i, j] = k.split(',').map(Number)
+  for (const [di, dj] of [[1, 0], [0, 1]]) {
+    const q = hay[(i + di) + ',' + (j + dj)]
+    if (!q) continue
+    el('path', { class: 'enlace', d: ruta([p, q]) }, red)
+    if (azar() < 0.55) {
+      const pulso = el('path', { class: 'pulso', d: ruta(azar() < 0.5 ? [p, q] : [q, p]) }, red)
+      pulso.style.animationDelay = (-azar() * 3.2).toFixed(2) + 's'
+      pulso.style.animationDuration = (2.4 + azar() * 2).toFixed(2) + 's'
+    }
+  }
+}
+for (const p of Object.values(hay)) {
+  el('circle', { class: 'nodo-halo', cx: p[0], cy: p[1], r: 9 }, red)
+  el('circle', { class: 'nodo', cx: p[0], cy: p[1], r: 2.4 }, red)
+}
+
+/* --- Etiqueta flotante con punto y dato -------------------------------------------- */
+function etiqueta(padre, [x, y], titulo, dato, dx = 14, dy = -26) {
+  const g = el('g', { class: 'etiqueta', transform: `translate(${x + dx} ${y + dy})` }, padre)
+  const ancho = 26 + (titulo.length + dato.length) * 5.25
+  el('rect', { x: 0, y: 0, width: ancho, height: 22, rx: 11 }, g)
+  el('circle', { cx: 11, cy: 11, r: 3 }, g)
+  const t = el('text', { x: 20, y: 14.6 }, g)
+  t.textContent = titulo + ' '
+  const d = el('tspan', { class: 'dato' }, t)
+  d.textContent = dato
+  el('path', { d: `M${-dx + 0} ${-dy} L0 11`, stroke: 'rgba(159,240,196,.45)', 'stroke-width': 0.8, fill: 'none', 'vector-effect': 'non-scaling-stroke' }, g)
+  return g
+}
+
+/* --- Las seis aplicaciones ------------------------------------------------------------ */
+const apps = [
+  {
+    nombre: 'La fila del combustible',
+    que: 'Cuántos autos esperan en cada surtidor, antes de salir de casa.',
+    foco: P(5.6, 1), dibujar(g) {
+      const surtidor = P(6, 1)
+      for (let k = 0; k < 12; k++) {
+        const [x, y] = P(5.92 - k * 0.085, 1)
+        el('rect', { class: 'auto', x: x - 3.2, y: y - 1.8, width: 6.4, height: 3.6, rx: 1.2, transform: `rotate(41.25 ${x} ${y})` }, g)
+      }
+      el('circle', { class: 'anillo', cx: surtidor[0], cy: surtidor[1], r: 16 }, g)
+      el('circle', { class: 'ambar', cx: surtidor[0], cy: surtidor[1], r: 5 }, g)
+      etiqueta(g, surtidor, 'Surtidor ·', '14 autos · ~25 min', 16, -30)
+    },
+  },
+  {
+    nombre: 'Tu micro',
+    que: 'Dónde viene y qué tan lleno, medido por los celulares que van en él.',
+    foco: P(4.6, 2.7), dibujar(g) {
+      const recorrido = [P(1, 4), P(4, 4), P(4, 2), P(7, 2)]
+      const camino = el('path', { class: 'trazo', d: ruta(recorrido) }, g)
+      const micro = el('circle', { r: 6, fill: '#f3f8f6', filter: 'url(#brillo)' }, g)
+      el('animateMotion', { dur: '9s', repeatCount: 'indefinite', path: ruta(recorrido) }, micro)
+      for (const p of [P(1, 4), P(4, 2), P(7, 2)]) el('circle', { cx: p[0], cy: p[1], r: 4, fill: 'var(--tinta)', stroke: 'var(--destello)', 'stroke-width': 1.5, 'vector-effect': 'non-scaling-stroke' }, g)
+      etiqueta(g, P(4, 2), 'Línea A ·', 'llega en 4 min', 16, -34)
+    },
+  },
+  {
+    nombre: 'La señal',
+    que: 'Qué operadora funciona mejor en cada cuadra, con datos de la gente.',
+    foco: P(2, 3.3), dibujar(g) {
+      const celdas = [[1.5, 3.5, 0.55], [2.5, 3.5, 0.3], [1.5, 2.5, 0.42], [2.5, 2.5, 0.16], [2.5, 4.5, 0.48]]
+      for (const [i, j, f] of celdas) {
+        const esquinas = [P(i - 0.42, j - 0.42), P(i + 0.42, j - 0.42), P(i + 0.42, j + 0.42), P(i - 0.42, j + 0.42)]
+        el('path', { class: 'celda', d: ruta(esquinas) + ' Z', 'fill-opacity': f * 0.5, 'stroke-opacity': f + 0.15 }, g)
+      }
+      etiqueta(g, P(1.5, 3.5), 'Entel ●●●○ · Tigo ●●○○ ·', 'Viva ●○○○', 18, -40)
+    },
+  },
+  {
+    nombre: 'Los apagones',
+    que: 'Dónde se cortó la luz y desde cuándo, avisado por los propios vecinos.',
+    foco: P(5.8, 2.8), dibujar(g) {
+      const zona = [P(5, 2), P(6.5, 2), P(6.5, 3.5), P(5, 3.5)]
+      el('path', { class: 'sin-luz', d: ruta(zona) + ' Z' }, g)
+      for (const [i, j] of [[5.4, 2.4], [6, 2.5], [5.6, 3.1], [6.2, 3.2], [5.2, 2.9]]) {
+        const [x, y] = P(i, j)
+        el('circle', { class: 'apagado', cx: x, cy: y, r: 2.4 }, g)
+      }
+      etiqueta(g, P(5, 2), 'Sin luz desde 19:40 ·', '32 avisos', -40, -36)
+    },
+  },
+  {
+    nombre: 'Llegar a casa',
+    que: 'Tu gente sabe que llegaste bien, sin que tengas que escribir.',
+    foco: P(2.1, 4.4), dibujar(g) {
+      const casa = P(2.5, 4.5)
+      const camino = [P(0, 5), P(2, 5), P(2, 4.5), casa]
+      el('path', { class: 'trazo-punteado', d: ruta(camino) }, g)
+      el('circle', { class: 'anillo', cx: casa[0], cy: casa[1], r: 14 }, g)
+      el('circle', { cx: casa[0], cy: casa[1], r: 6, fill: 'var(--aurora)', filter: 'url(#brillo)' }, g)
+      el('path', { d: `M${casa[0] - 2.6} ${casa[1]} l1.9 2 l3.4 -3.8`, stroke: '#03100e', 'stroke-width': 1.6, fill: 'none', 'stroke-linecap': 'round' }, g)
+      etiqueta(g, casa, 'Llegó a casa ·', '22:14', 16, -32)
+    },
+  },
+  {
+    nombre: 'Tu mascota',
+    que: 'Un llavero en su collar y toda la red ayuda a encontrarla.',
+    foco: P(3.5, 2.5), dibujar(g) {
+      const c = P(3.5, 2.5)
+      const vuelta = `M${c[0] - 22} ${c[1] + 6} C ${c[0] - 18} ${c[1] - 22}, ${c[0] + 14} ${c[1] - 26}, ${c[0] + 22} ${c[1] - 4} S ${c[0] + 4} ${c[1] + 26}, ${c[0] - 22} ${c[1] + 6}`
+      el('path', { class: 'trazo-punteado', d: vuelta }, g)
+      const huella = el('circle', { r: 4.5, fill: '#f0a65a', filter: 'url(#brillo)' }, g)
+      el('animateMotion', { dur: '7s', repeatCount: 'indefinite', path: vuelta }, huella)
+      etiqueta(g, [c[0] + 22, c[1] - 4], 'Huellita ·', 'vista hace 2 min', 14, -30)
+    },
+  },
+]
+
+/* --- Cámara: viaja al lugar de cada aplicación ----------------------------------------- */
+const mundo = document.getElementById('mundo')
+function encuadrar(foco, zoom) {
+  const vw = innerWidth, vh = innerHeight
+  const vertical = vw / vh < 1.1
+  const base = Math.max(vw / W, vh / H)
+  const s = base * zoom
+  const sx = vertical ? vw * 0.5 : vw * 0.66
+  const sy = vertical ? vh * 0.3 : vh * 0.5
+  let tx = sx - foco[0] * s, ty = sy - foco[1] * s
+  tx = Math.min(0, Math.max(vw - W * s, tx))
+  ty = Math.min(0, Math.max(vh - H * s, ty))
+  mundo.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`
+}
+
+/* --- Lista y avance solo ---------------------------------------------------------------- */
+const DURACION = 6000
+const lista = document.getElementById('apps')
+const grupos = apps.map((a) => {
+  const g = el('g', { class: 'app' }, capas)
+  a.dibujar(g)
+  return g
+})
+const items = apps.map((a, i) => {
+  const li = document.createElement('li')
+  li.innerHTML = `<button type="button"><span class="nombre">${a.nombre}</span><span class="pronto">Pronto</span><span class="que">${a.que}</span></button>`
+  li.querySelector('button').addEventListener('click', () => ir(i))
+  lista.appendChild(li)
+  return li
+})
+let actual = -1, reloj = 0
+function ir(i) {
+  actual = (i + apps.length) % apps.length
+  items.forEach((li, k) => li.classList.toggle('activa', k === actual))
+  grupos.forEach((g, k) => g.classList.toggle('activa', k === actual))
+  encuadrar(apps[actual].foco, innerWidth / innerHeight < 1.1 ? 2.2 : 1.75)
+  clearTimeout(reloj)
+  reloj = setTimeout(() => ir(actual + 1), DURACION)
+}
+// Entra con la ciudad entera y luego viaja a la primera aplicación.
+encuadrar(P(4, 3), 1)
+setTimeout(() => ir(0), 900)
+addEventListener('resize', () => actual >= 0 && encuadrar(apps[actual].foco, innerWidth / innerHeight < 1.1 ? 2.2 : 1.75))
+</script>
+</body>
+</html>
