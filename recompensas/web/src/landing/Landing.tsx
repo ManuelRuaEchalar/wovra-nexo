@@ -188,7 +188,14 @@ function Hero({ t }: { t: Textos }) {
         <div className="hero-principal">
           <h1>{t.hero.titulo}</h1>
           <p className="hero-frase">{t.hero.frase}</p>
-          <p className="hero-bajada">{t.hero.bajada}</p>
+          <p className="hero-bajada">
+            {t.hero.bajada}{' '}
+            <span className="hero-stellar">
+              {t.hero.stellar[0]}
+              <strong>{t.hero.stellar[1]}</strong>
+              {t.hero.stellar[2]}
+            </span>
+          </p>
           <div className="acciones">
             <a className="btn btn-luz" href="#senal">
               {t.hero.principal}

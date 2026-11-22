@@ -29,6 +29,8 @@ const es = {
     titulo: 'Dendra',
     frase: 'Lo que pierdes, la red lo encuentra.',
     bajada: 'Cada celular con Dendra cuida a los demás. Por internet, wifi, SMS o Bluetooth, el tuyo siempre encuentra cómo avisarte dónde está.',
+    /** "Stellar" se resalta con la luz de la marca. */
+    stellar: ['Y quien te lo devuelva cobra una recompensa garantizada en ', 'Stellar', '.'],
     principal: 'Mira cómo lo encuentra',
     secundaria: 'Únete',
     pausar: 'Pausar el fondo',
@@ -175,6 +177,7 @@ const en: Textos = {
     titulo: 'Dendra',
     frase: 'What you lose, the network finds.',
     bajada: 'Every phone with Dendra looks out for the others. Over the internet, wifi, SMS or Bluetooth, yours always finds a way to tell you where it is.',
+    stellar: ['And whoever returns it earns a reward guaranteed on ', 'Stellar', '.'],
     principal: 'See how it finds it',
     secundaria: 'Join',
     pausar: 'Pause the background',

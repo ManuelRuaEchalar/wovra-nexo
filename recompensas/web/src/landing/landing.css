@@ -114,7 +114,9 @@ html:has(body.cuerpo-landing) { scroll-padding-top: 80px; }
   font: 300 clamp(26px, 2.7vw, 42px)/1.15 Sora, sans-serif; letter-spacing: -0.035em; color: #f3f8f6;
   margin: 26px 0 0; max-width: 20ch; text-wrap: balance;
 }
-.landing .hero-bajada { font-size: clamp(17px, 1.35vw, 20px); line-height: 1.55; color: #c9d6d2; margin: 18px 0 0; max-width: 46ch; }
+.landing .hero-bajada { font-size: clamp(17px, 1.35vw, 20px); line-height: 1.55; color: #c9d6d2; margin: 18px 0 0; max-width: 48ch; }
+.hero-stellar { color: #e8f1ee; }
+.hero-stellar strong { font-weight: 600; color: var(--destello); text-shadow: 0 0 14px rgba(43, 208, 126, 0.55); }
 .landing .hero .acciones { margin-top: 36px; gap: 12px; }
 .hero-pausa {
   position: absolute; right: 24px; bottom: 22px; z-index: 2;
