@@ -2,13 +2,13 @@ import { StrictMode } from 'react'
 import type { Root } from 'react-dom/client'
 import { PollarProvider } from '@pollar/react'
 import '@pollar/react/styles.css'
-import Reclamo from './Reclamo'
+import PaginaReclamo from './Reclamo'
 import { api, type ConfigPublica } from './api'
 
 /** Página de reclamo (/r/:id): pide la configuración pública y monta Pollar si hay clave. */
 export function iniciarReclamo(raiz: Root) {
   const montar = (config: ConfigPublica) => {
-    const app = <Reclamo config={config} />
+    const app = <PaginaReclamo config={config} />
     raiz.render(
       <StrictMode>
         {config.pollarClavePublica ? (
