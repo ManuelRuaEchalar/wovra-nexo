@@ -98,7 +98,10 @@
   .texto.en-intro .apps, .texto:not(.en-intro) .intro { opacity: 0; transform: translateY(10px); pointer-events: none; }
 
   /* La red completa: muchos celulares y los avisos pasando en ondas. */
-  .red-densa { transition: opacity 1.2s; }
+  .red-densa { transition: opacity 2.8s ease-in-out; }
+  /* Salida de la introducción: la cámara baja despacio y el resto entra por turnos. */
+  .mundo.saliendo { transition: transform 4.6s cubic-bezier(0.65, 0, 0.3, 1); }
+  .app.activa.tras-intro { transition: opacity 1.4s; transition-delay: 3.6s; }
   .ciudad:not(.en-intro) .red-densa { opacity: 0; }
   /* Cada celular: un punto de luz con halo suave; florece cuando le llega un aviso. */
   .punto { fill: url(#luzCelular); opacity: 0.22; transform-box: fill-box; transform-origin: center;
@@ -504,16 +507,34 @@ function introduccion() {
   clearTimeout(reloj)
   reloj = setTimeout(() => ir(0), INTRO_MS)
 }
+const SALIDA_MS = 4600
+let pendientes = []
 function ir(i) {
   if (i >= apps.length) return introduccion()
-  texto.classList.remove('en-intro')
-  ciudad.classList.remove('en-intro')
+  pendientes.forEach(clearTimeout)
+  pendientes = []
+  const desdeIntro = actual === -1
   actual = (i + apps.length) % apps.length
-  items.forEach((li, k) => li.classList.toggle('activa', k === actual))
-  grupos.forEach((g, k) => g.classList.toggle('activa', k === actual))
+  grupos.forEach((g, k) => {
+    g.classList.toggle('activa', k === actual)
+    g.classList.toggle('tras-intro', desdeIntro && k === actual)
+  })
+  mundo.classList.toggle('saliendo', desdeIntro)
   encuadrar(apps[actual].foco, innerWidth / innerHeight < 1.1 ? 2.2 : 1.75)
+  // Desde la introducción, por turnos: se apaga el mensaje y la red se desvanece mientras
+  // la cámara baja; la lista entra a mitad de camino; la superposición, al llegar.
+  ciudad.classList.remove('en-intro')
+  const marcarLista = () => {
+    texto.classList.remove('en-intro')
+    items.forEach((li, k) => li.classList.toggle('activa', k === actual))
+  }
+  if (desdeIntro) {
+    texto.querySelector('.intro').style.opacity = '0'
+    pendientes.push(setTimeout(() => { texto.querySelector('.intro').style.opacity = ''; marcarLista() }, 1500))
+    pendientes.push(setTimeout(() => mundo.classList.remove('saliendo'), SALIDA_MS))
+  } else marcarLista()
   clearTimeout(reloj)
-  reloj = setTimeout(() => ir(actual + 1), DURACION)
+  reloj = setTimeout(() => ir(actual + 1), DURACION + (desdeIntro ? SALIDA_MS - 1000 : 0))
 }
 introduccion()
 addEventListener('resize', () =>
