@@ -46,30 +46,29 @@ function escenaInicial(total: number) {
 }
 
 /**
- * Control para cambiar de escena: la órbita inclinada del logo con su punto de luz
- * en el extremo hacia donde se va, y una estela de luz granulada que lo sigue.
- * El de "anterior" es el mismo, reflejado.
+ * Flecha para cambiar de escena, dibujada con puntos de luz granulada: un ">" de
+ * partículas que crecen hacia la punta, como la señal que viaja entre celulares.
+ * La de "anterior" es la misma, reflejada.
  */
-const ORBITA = { rx: 30, ry: 10, giro: (-14 * Math.PI) / 180 }
-function puntoOrbita(angulo: number) {
-  const x = ORBITA.rx * Math.cos(angulo)
-  const y = ORBITA.ry * Math.sin(angulo)
-  const c = Math.cos(ORBITA.giro)
-  const s = Math.sin(ORBITA.giro)
-  return { x: 36 + x * c - y * s, y: 20 + x * s + y * c }
-}
-const CABEZA = puntoOrbita(0)
-const ESTELA = [0.3, 0.6, 0.9, 1.2, 1.5].map((a, i) => ({ ...puntoOrbita(a), r: 2.2 - i * 0.35, i }))
+const PUNTOS_FLECHA = (() => {
+  const puntos: { x: number; y: number; r: number; orden: number }[] = []
+  const pasos = 5
+  for (let i = 0; i <= pasos; i++) {
+    const k = i / pasos // 0 en la cola, 1 en la punta
+    const r = 1.1 + k * 1.9
+    puntos.push({ x: 6 + k * 16, y: 4 + k * 18, r, orden: i })
+    if (i < pasos) puntos.push({ x: 6 + k * 16, y: 40 - k * 18, r, orden: i })
+  }
+  return puntos
+})()
 
-function Orbita() {
+function Flecha() {
   return (
-    <svg viewBox="0 0 72 40" aria-hidden="true">
-      <ellipse className="orbita-aro" cx="36" cy="20" rx={ORBITA.rx} ry={ORBITA.ry} transform="rotate(-14 36 20)" />
-      {ESTELA.map((e) => (
-        <circle key={e.i} className="orbita-estela" cx={e.x} cy={e.y} r={e.r} style={{ transitionDelay: `${e.i * 45}ms` }} />
+    <svg viewBox="0 0 30 44" aria-hidden="true">
+      <circle className="flecha-halo" cx="22" cy="22" r="7" />
+      {PUNTOS_FLECHA.map((p, i) => (
+        <circle key={i} className="flecha-punto" cx={p.x} cy={p.y} r={p.r} style={{ animationDelay: `${p.orden * 70}ms` }} />
       ))}
-      <circle className="orbita-halo" cx={CABEZA.x} cy={CABEZA.y} r="7" />
-      <circle className="orbita-punto" cx={CABEZA.x} cy={CABEZA.y} r="3.2" />
     </svg>
   )
 }
@@ -163,10 +162,10 @@ export default function Senal({ t }: { t: Textos }) {
         <canvas ref={lienzo} />
       </div>
       <button className="senal-flecha anterior" onClick={() => ir(paso - 1)} aria-label={t.senal.anterior}>
-        <Orbita />
+        <Flecha />
       </button>
       <button className="senal-flecha siguiente" onClick={() => ir(paso + 1)} aria-label={t.senal.siguiente}>
-        <Orbita />
+        <Flecha />
       </button>
       <div className="senal-texto">
         <p className="eyebrow">{t.senal.eyebrow}</p>
